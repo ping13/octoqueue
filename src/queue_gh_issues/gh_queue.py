@@ -98,6 +98,34 @@ class GithubQueue:
             self.logger.error(f"Failed to complete job {job_id}: {e}")
             raise
 
+    def requeue(self, job_id: int, comment: str = None) -> None:
+        """Put a job back in the queue for reprocessing"""
+        if comment is None:
+            comment = "Job has been requeued for processing"
+        try:
+            issue = self.repo.get_issue(job_id)
+            
+            # Remove existing status labels
+            for label in ["processing", "completed"]:
+                try:
+                    issue.remove_from_labels(label)
+                except GithubException:
+                    pass  # Label might not exist
+            
+            # Add back to pending
+            issue.add_to_labels("pending")
+            
+            # Reopen if closed
+            if issue.state == "closed":
+                issue.edit(state="open")
+            
+            if comment:
+                issue.create_comment(comment)
+                
+        except GithubException as e:
+            self.logger.error(f"Failed to requeue job {job_id}: {e}")
+            raise
+
 
 if __name__ == "__main__":
 
