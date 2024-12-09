@@ -53,7 +53,12 @@ class GithubQueue:
 
     def _ensure_labels(self) -> None:
         """Create required labels if they don't exist"""
-        required = {"pending": "0dbf66", "processing": "0052cc", "completed": "2cbe4e"}
+        required = {
+            "pending": "0dbf66",
+            "processing": "0052cc", 
+            "completed": "2cbe4e",
+            "failed": "d93f0b"  # Red color for failed
+        }
 
         existing = {label.name: label for label in self.repo.get_labels()}
 
@@ -109,8 +114,20 @@ class GithubQueue:
             self.logger.error(f"Failed to dequeue job: {e}")
             raise
 
-    # add a fail method that labels a job as failed, also write a test). AI!
-    
+    def fail(self, job_id: int, comment: str = None) -> None:
+        """Mark job as failed"""
+        if comment is None:
+            comment = "This job has failed"
+        try:
+            issue = self.repo.get_issue(job_id)
+            issue.remove_from_labels("processing")
+            issue.add_to_labels("failed") 
+            issue.create_comment(comment)
+            issue.edit(state="closed")
+        except GithubException as e:
+            self.logger.error(f"Failed to mark job {job_id} as failed: {e}")
+            raise
+
     def complete(self, job_id: int, comment: str = None) -> None:
         """Mark job as complete"""
         if comment is None:
