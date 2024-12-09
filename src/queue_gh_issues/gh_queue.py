@@ -3,7 +3,7 @@ import logging
 import os
 import sys
 import time
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from typing import Any
 from dotenv import load_dotenv
 from github import Auth
@@ -124,6 +124,37 @@ class GithubQueue:
                 
         except GithubException as e:
             self.logger.error(f"Failed to requeue job {job_id}: {e}")
+            raise
+
+    def get_processing_jobs(self) -> list[tuple[int, datetime, dict[str, Any]]]:
+        """Get all jobs currently being processed
+        
+        Returns:
+            List of tuples containing (job_id, start_time, job_data)
+            where start_time is when the processing label was added
+        """
+        try:
+            processing = self.repo.get_issues(labels=["processing"], state="open")
+            jobs = []
+            
+            for issue in processing:
+                # Get the job data from the issue body
+                body = issue.body
+                data = json.loads(body[body.find("```json\n") + 7 : body.rfind("\n```")])
+                
+                # Find when the processing label was added by checking issue events
+                start_time = None
+                for event in issue.get_events():
+                    if event.event == "labeled" and event.label.name == "processing":
+                        start_time = event.created_at
+                        break
+                
+                jobs.append((issue.number, start_time, data))
+                
+            return jobs
+            
+        except GithubException as e:
+            self.logger.error(f"Failed to get processing jobs: {e}")
             raise
 
 
