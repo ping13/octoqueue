@@ -109,6 +109,8 @@ class GithubQueue:
             self.logger.error(f"Failed to dequeue job: {e}")
             raise
 
+    # add a fail method that labels a job as failed, also write a test). AI!
+    
     def complete(self, job_id: int, comment: str = None) -> None:
         """Mark job as complete"""
         if comment is None:
