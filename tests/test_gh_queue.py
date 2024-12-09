@@ -40,3 +40,42 @@ class TestGitHubQueue(unittest.TestCase):
         cnt = self.queue.count_open()
         self.queue.complete(TestGitHubQueue.job_id)
         self.assertEqual(self.queue.count_open(), cnt - 1)
+
+    def test_04_requeue_issue(self):
+        """Test requeuing a completed job"""
+        cnt = self.queue.count_open()
+        self.queue.requeue(TestGitHubQueue.job_id, "Requeuing for test")
+        self.assertEqual(self.queue.count_open(), cnt + 1)
+        
+        # Verify it's back in pending state
+        job = self.queue.dequeue()
+        self.assertIsNotNone(job)
+        job_id, data = job
+        self.assertEqual(job_id, TestGitHubQueue.job_id)
+        self.assertEqual(data, test_issue_data)
+
+    def test_05_get_processing_jobs(self):
+        """Test getting list of processing jobs"""
+        # First ensure we have a processing job
+        self.queue.enqueue({"test": "processing_check"}, "Processing Job Test")
+        job = self.queue.dequeue()  # This will mark it as processing
+        self.assertIsNotNone(job)
+        job_id, _ = job
+        
+        # Get processing jobs
+        processing = self.queue.get_processing_jobs()
+        self.assertTrue(len(processing) >= 1)
+        
+        # Verify the structure of returned data
+        found = False
+        for proc_id, start_time, data in processing:
+            if proc_id == job_id:
+                found = True
+                self.assertIsNotNone(start_time)
+                self.assertIsInstance(data, dict)
+                self.assertEqual(data["test"], "processing_check")
+        
+        self.assertTrue(found, "Recently created processing job not found")
+        
+        # Cleanup
+        self.queue.complete(job_id)
