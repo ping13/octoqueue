@@ -1,11 +1,10 @@
 import json
 import logging
 import os
+import re
 import sys
 import time
-import re
-import json
-from datetime import datetime, timezone, timedelta
+from datetime import datetime
 from typing import Any
 from dotenv import load_dotenv
 from github import Auth
@@ -14,16 +13,17 @@ from github import GithubException
 
 load_dotenv()
 
+
 def extract_json(text):
     # Look for content between ```json and ``` markers
-    json_pattern = r'```json\s*(\{[^`]*\})\s*```'
+    json_pattern = r"```json\s*(\{[^`]*\})\s*```"
     match = re.search(json_pattern, text, re.DOTALL)
-    
+
     if not match:
         # Fallback: try to find any content between curly braces
-        json_pattern = r'\{[^{]*\}'
+        json_pattern = r"\{[^{]*\}"
         match = re.search(json_pattern, text, re.DOTALL)
-    
+
     if match:
         try:
             # Parse the extracted string as JSON
@@ -34,8 +34,9 @@ def extract_json(text):
                 return json.loads(match.group(0))
             except json.JSONDecodeError:
                 return None
-    
+
     return None
+
 
 class GithubQueue:
     def __init__(self, repo: str):
@@ -97,7 +98,7 @@ class GithubQueue:
 
             issue = issues[0]
             body = issue.body
-            data = json.loads(extract_json(body))
+            data = extract_json(body)
 
             issue.remove_from_labels("pending")
             issue.add_to_labels("processing")
@@ -128,31 +129,31 @@ class GithubQueue:
             comment = "Job has been requeued for processing"
         try:
             issue = self.repo.get_issue(job_id)
-            
+
             # Remove existing status labels
             for label in ["processing", "completed"]:
                 try:
                     issue.remove_from_labels(label)
                 except GithubException:
                     pass  # Label might not exist
-            
+
             # Add back to pending
             issue.add_to_labels("pending")
-            
+
             # Reopen if closed
             if issue.state == "closed":
                 issue.edit(state="open")
-            
+
             if comment:
                 issue.create_comment(comment)
-                
+
         except GithubException as e:
             self.logger.error(f"Failed to requeue job {job_id}: {e}")
             raise
 
     def get_processing_jobs(self) -> list[tuple[int, datetime, dict[str, Any]]]:
         """Get all jobs currently being processed
-        
+
         Returns:
             List of tuples containing (job_id, start_time, job_data)
             where start_time is when the processing label was added
@@ -160,23 +161,23 @@ class GithubQueue:
         try:
             processing = self.repo.get_issues(labels=["processing"], state="open")
             jobs = []
-            
+
             for issue in processing:
                 # Get the job data from the issue body
                 body = issue.body
                 data = json.loads(body[body.find("```json\n") + 7 : body.rfind("\n```")])
-                
+
                 # Find when the processing label was added by checking issue events
                 start_time = None
                 for event in issue.get_events():
                     if event.event == "labeled" and event.label.name == "processing":
                         start_time = event.created_at
                         break
-                
+
                 jobs.append((issue.number, start_time, data))
-                
+
             return jobs
-            
+
         except GithubException as e:
             self.logger.error(f"Failed to get processing jobs: {e}")
             raise
