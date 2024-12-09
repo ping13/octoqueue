@@ -1,37 +1,44 @@
 """Tests for the queue_gh_issues.gh_queue module."""
 
 import pytest
+import unittest
+import time
+
 from queue_gh_issues.gh_queue import GithubQueue
 
 
-def test_github_queue_initialization():
-    """Test that GithubQueue initializes with empty queue."""
-    queue = GithubQueue()
-    assert len(queue.issues) == 0
+test_issue_data = {
+    "title": "Test Issue",
+    "body": "Test Description",
+    "labels": ["bug"]
+}
 
+class TestGitHubQueue(unittest.TestCase):
+    def setUp(self):
+        """setup the queue"""
+        self.queue = GithubQueue("ping13/queue_gh_issues_test")
 
-def test_add_issue():
-    """Test adding an issue to the queue."""
-    queue = GithubQueue()
-    issue_data = {
-        "title": "Test Issue",
-        "body": "Test Description",
-        "labels": ["bug"]
-    }
-    queue.add_issue(issue_data)
-    assert len(queue.issues) == 1
-    assert queue.issues[0] == issue_data
+    def test_01_add_issue(self):
+        """Test adding an issue to the queue."""
+        cnt = self.queue.count_open()
+        print(f"cnt = {cnt}")
+        self.assertTrue(cnt >= 0)
+        TestGitHubQueue.job_id = self.queue.enqueue(test_issue_data)
+        print(f"job_id = {self.job_id}, cnt = {cnt}")
+        self.assertTrue(self.job_id > 0)
+        time.sleep(5)
+        self.assertEqual(self.queue.count_open(), cnt + 1)
 
+    def test_02_process_issue(self):
+        """get the job from the queue """
+        job = self.queue.dequeue()
+        self.assertTrue(isinstance(job, tuple))
+        this_job_id, data = job
+        self.assertEqual(this_job_id, TestGitHubQueue.job_id)
+        self.assertTrue(isinstance(data, dict))
 
-def test_process_queue():
-    """Test processing issues in the queue."""
-    queue = GithubQueue()
-    issue1 = {"title": "Issue 1", "body": "Description 1", "labels": ["bug"]}
-    issue2 = {"title": "Issue 2", "body": "Description 2", "labels": ["feature"]}
-    
-    queue.add_issue(issue1)
-    queue.add_issue(issue2)
-    
-    processed_issues = queue.process_queue()
-    assert len(processed_issues) == 2
-    assert len(queue.issues) == 0
+    def test_03_complete_issue(self):
+        """complete a job from the queue """
+        cnt = self.queue.count_open()
+        self.queue.complete(TestGitHubQueue.job_id)
+        self.assertEqual(self.queue.count_open(), cnt - 1)

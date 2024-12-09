@@ -18,17 +18,19 @@ classifiers = [
     "",
     "Natural Language :: English",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
 ]
-dependencies = []
-description = "This is a simple queue implementatione based on GitHub issues"
+dependencies = [
+    "aider-chat[dev]>=0.67.0",
+    "pygithub>=2.5.0",
+    "python-dotenv>=1.0.1",
+]
+description = "A simple queue implementatione based on GitHub issues"
 keywords = [""]
 license = {file = "LICENSE"}
 name = "queue_gh_issues"
 readme = {file = "README.md", content-type = "text/markdown"}
-requires-python = ">=3.8"
+requires-python = ">=3.12"
 version = "0.1.0"
 
 [project.optional-dependencies]
