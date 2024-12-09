@@ -1,0 +1,27 @@
+# Changes here will be overwritten by Copier
+SelectCodeQualityFeatures:
+- AddLocalTests_flag
+- SelectGitHubActions_flag
+- AddLinting_flag
+- AddPreCommit_flag
+- AddEditorConfig_flag
+SelectCommunityFeatures: []
+SelectDocumentationFeatures:
+- AddOnlineDocumentation_flag
+SelectGitHubActions:
+- AddGitHubActionBuild_flag
+- AddLinkCheck_flag
+SelectPublishReleaseFeatures: []
+_commit: 0.6.1
+_src_path: https://github.com/nlesc/python-template.git
+copyright_holder: Stephan Heuel
+email: mail@ping13.net
+full_name: Stephan Heuel
+github_organization: ping13
+keywords: ''
+license: MIT
+package_name: queue_gh_issues
+package_short_description: This is a simple queue implementatione based on GitHub
+    issues
+template_profile: ask
+version: 0.1.0
