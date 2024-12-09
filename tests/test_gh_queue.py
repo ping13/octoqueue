@@ -80,6 +80,28 @@ class TestGitHubQueue(unittest.TestCase):
         # Cleanup
         self.queue.complete(job_id)
 
+    def test_05b_fail_issue(self):
+        """Test marking a job as failed"""
+        # Create a new job to test failure
+        job_id = self.queue.enqueue({"test": "failure_test"}, "Failure Test Job")
+        job = self.queue.dequeue()  # Mark it as processing
+        self.assertIsNotNone(job)
+        
+        # Get initial count of open issues
+        cnt = self.queue.count_open()
+        
+        # Mark the job as failed
+        failure_message = "Test failure message"
+        self.queue.fail(job_id, failure_message)
+        
+        # Verify open count decreased
+        self.assertEqual(self.queue.count_open(), cnt - 1)
+        
+        # Could add more detailed verification here if needed, such as:
+        # - Verify the failure label is present
+        # - Verify the failure message was added as a comment
+        # - Verify the issue is closed
+
     def test_06_complete_issue(self):
         """Complete a job from the queue"""
         cnt = self.queue.count_open()
