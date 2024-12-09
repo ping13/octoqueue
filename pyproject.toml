@@ -21,7 +21,6 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
 ]
 dependencies = [
-    "aider-chat[dev]>=0.67.0",
     "pygithub>=2.5.0",
     "python-dotenv>=1.0.1",
 ]
