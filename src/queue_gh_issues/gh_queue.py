@@ -1,14 +1,17 @@
-from github import Github, Auth, GithubException
-from datetime import datetime
 import json
-from typing import Optional, Dict, Any
 import logging
-from dotenv import load_dotenv
 import os
 import sys
 import time
+from datetime import datetime
+from typing import Any
+from dotenv import load_dotenv
+from github import Auth
+from github import Github
+from github import GithubException
 
 load_dotenv()
+
 
 class GithubQueue:
     def __init__(self, repo: str):
@@ -33,14 +36,16 @@ class GithubQueue:
             if name not in existing:
                 self.repo.create_label(name=name, color=color)
 
-    def enqueue(self, data: Dict[str, Any], title: str = None) -> int:
+    def enqueue(self, data: dict[str, Any], title: str = None) -> int:
         """Add a job to the queue"""
         if title is None:
             title = f"Job {datetime.now().isoformat()}"
 
         try:
             issue = self.repo.create_issue(
-                title=title, body=f"```json\n{json.dumps(data, indent=2)}\n```", labels=["pending"]
+                title=title,
+                body=f"```json\n{json.dumps(data, indent=2)}\n```",
+                labels=["pending"],
             )
             return issue.number
         except GithubException as e:
@@ -48,17 +53,17 @@ class GithubQueue:
             raise
 
     def count_open(self) -> int:
-        """ count the pending and processing issues"""
+        """Count the pending and processing issues"""
         open_issues = self.repo.get_issues(state="open")
         cnt = 0
         for issue in open_issues:
             labels = list(issue.get_labels())
             for label in labels:
                 if label.name == "processing" or label.name == "pending":
-                    cnt+=1
+                    cnt += 1
         return cnt
-        
-    def dequeue(self) -> Optional[tuple[int, Dict[str, Any]]]:
+
+    def dequeue(self) -> tuple[int, dict[str, Any]] | None:
         """Get and claim next pending job"""
         try:
             issues = self.repo.get_issues(labels=["pending"], state="open", sort="created")

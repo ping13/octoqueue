@@ -1,21 +1,19 @@
 """Tests for the queue_gh_issues.gh_queue module."""
 
-import pytest
-import unittest
 import time
-
+import unittest
 from queue_gh_issues.gh_queue import GithubQueue
-
 
 test_issue_data = {
     "title": "Test Issue",
     "body": "Test Description",
-    "labels": ["bug"]
+    "labels": ["bug"],
 }
+
 
 class TestGitHubQueue(unittest.TestCase):
     def setUp(self):
-        """setup the queue"""
+        """Setup the queue"""
         self.queue = GithubQueue("ping13/queue_gh_issues_test")
 
     def test_01_add_issue(self):
@@ -30,7 +28,7 @@ class TestGitHubQueue(unittest.TestCase):
         self.assertEqual(self.queue.count_open(), cnt + 1)
 
     def test_02_process_issue(self):
-        """get the job from the queue """
+        """Get the job from the queue"""
         job = self.queue.dequeue()
         self.assertTrue(isinstance(job, tuple))
         this_job_id, data = job
@@ -38,7 +36,7 @@ class TestGitHubQueue(unittest.TestCase):
         self.assertTrue(isinstance(data, dict))
 
     def test_03_complete_issue(self):
-        """complete a job from the queue """
+        """Complete a job from the queue"""
         cnt = self.queue.count_open()
         self.queue.complete(TestGitHubQueue.job_id)
         self.assertEqual(self.queue.count_open(), cnt - 1)
