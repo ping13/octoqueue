@@ -79,3 +79,10 @@ class TestGitHubQueue(unittest.TestCase):
         
         # Cleanup
         self.queue.complete(job_id)
+
+    def test_06_complete_issue(self):
+        """Complete a job from the queue"""
+        cnt = self.queue.count_open()
+        self.queue.complete(TestGitHubQueue.job_id)
+        self.assertEqual(self.queue.count_open(), cnt - 1)
+        

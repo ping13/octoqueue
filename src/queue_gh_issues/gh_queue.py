@@ -3,6 +3,8 @@ import logging
 import os
 import sys
 import time
+import re
+import json
 from datetime import datetime, timezone, timedelta
 from typing import Any
 from dotenv import load_dotenv
@@ -12,6 +14,28 @@ from github import GithubException
 
 load_dotenv()
 
+def extract_json(text):
+    # Look for content between ```json and ``` markers
+    json_pattern = r'```json\s*(\{[^`]*\})\s*```'
+    match = re.search(json_pattern, text, re.DOTALL)
+    
+    if not match:
+        # Fallback: try to find any content between curly braces
+        json_pattern = r'\{[^{]*\}'
+        match = re.search(json_pattern, text, re.DOTALL)
+    
+    if match:
+        try:
+            # Parse the extracted string as JSON
+            return json.loads(match.group(1))
+        except (json.JSONDecodeError, IndexError):
+            try:
+                # If first attempt fails, try parsing the entire match
+                return json.loads(match.group(0))
+            except json.JSONDecodeError:
+                return None
+    
+    return None
 
 class GithubQueue:
     def __init__(self, repo: str):
@@ -73,7 +97,7 @@ class GithubQueue:
 
             issue = issues[0]
             body = issue.body
-            data = json.loads(body[body.find("```json\n") + 7 : body.rfind("\n```")])
+            data = json.loads(extract_json(body))
 
             issue.remove_from_labels("pending")
             issue.add_to_labels("processing")
