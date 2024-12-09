@@ -2,7 +2,7 @@
 
 import time
 import unittest
-from queue_gh_issues.gh_queue import GithubQueue
+from queue_gh_issues import GithubQueue
 
 test_issue_data = {
     "title": "Test Issue",
