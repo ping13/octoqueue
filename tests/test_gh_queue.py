@@ -5,8 +5,8 @@ import unittest
 from queue_gh_issues import GithubQueue
 
 test_issue_data = {
-    "title": "Test Issue",
-    "body": "Test Description",
+    "title": "Test Issue 😃",
+    "body": "Test Description, äöü, 世界 🌎",
     "labels": ["bug"],
 }
 
