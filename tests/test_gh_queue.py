@@ -55,30 +55,53 @@ class TestGitHubQueue(unittest.TestCase):
         self.assertEqual(data, test_issue_data)
 
     def test_05_get_processing_jobs(self):
-        """Test getting list of processing jobs"""
-        # First ensure we have a processing job
-        self.queue.enqueue({"test": "processing_check"}, "Processing Job Test")
-        job = self.queue.dequeue()  # This will mark it as processing
+        """Test getting list of processing jobs with different labels"""
+        # First ensure we have a processing job and a job with custom label
+        job1_id = self.queue.enqueue({"test": "processing_check"}, "Processing Job Test")
+        job2_id = self.queue.enqueue({"test": "custom_label_check"}, "Custom Label Test", 
+                                additional_labels=["mastodon"])
+        
+        # Dequeue first job to mark it as processing
+        job = self.queue.dequeue()
         self.assertIsNotNone(job)
-        job_id, _ = job
-
-        # Get processing jobs
-        processing = self.queue.get_processing_jobs()
+        
+        # Test getting only processing jobs
+        processing = self.queue.get_processing_jobs()  # default label="processing"
         self.assertTrue(len(processing) >= 1)
-
-        # Verify the structure of returned data
-        found = False
+        
+        # Verify the structure of returned data for processing jobs
+        found_processing = False
         for proc_id, start_time, data in processing:
-            if proc_id == job_id:
-                found = True
+            if proc_id == job1_id:
+                found_processing = True
                 self.assertIsNotNone(start_time)
                 self.assertIsInstance(data, dict)
                 self.assertEqual(data["test"], "processing_check")
-
-        self.assertTrue(found, "Recently created processing job not found")
-
+        
+        self.assertTrue(found_processing, "Recently created processing job not found")
+        
+        # Test getting jobs with custom label
+        custom_labeled = self.queue.get_processing_jobs(labels=["mastodon"])
+        self.assertTrue(len(custom_labeled) >= 1)
+        
+        # Verify the structure of returned data for custom labeled jobs
+        found_custom = False
+        for proc_id, start_time, data in custom_labeled:
+            if proc_id == job2_id:
+                found_custom = True
+                self.assertIsNotNone(start_time)
+                self.assertIsInstance(data, dict)
+                self.assertEqual(data["test"], "custom_label_check")
+        
+        self.assertTrue(found_custom, "Recently created custom labeled job not found")
+        
+        # Test getting jobs with multiple labels
+        multi_labeled = self.queue.get_processing_jobs(labels=["processing", "mastodon"])
+        self.assertTrue(len(multi_labeled) >= 2)
+        
         # Cleanup
-        self.queue.complete(job_id)
+        self.queue.complete(job1_id)
+        self.queue.complete(job2_id)
 
     def test_05b_fail_issue(self):
         """Test marking a job as failed"""
