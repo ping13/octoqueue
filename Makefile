@@ -4,7 +4,7 @@
 all: help
 
 test:		## run unittests
-	uv run python -m pytest
+	uv run python -m pytest -x
 
 
 aider:		## Start a chat with an LLM to change your code

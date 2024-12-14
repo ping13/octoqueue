@@ -3,7 +3,8 @@ import logging
 import os
 import re
 from datetime import datetime
-from typing import Any, Literal
+from typing import Any
+from typing import Literal
 from dotenv import load_dotenv
 from github import Auth
 from github import Github
@@ -35,10 +36,11 @@ def extract_json(text):
 
     return None
 
+
 class GithubQueue:
     def _safe_remove_label(self, issue, label: str) -> None:
         """Safely remove a label from an issue, ignoring if it doesn't exist
-        
+
         Args:
             issue: GitHub issue object
             label: Name of label to remove
@@ -48,6 +50,7 @@ class GithubQueue:
         except GithubException as e:
             if e.status != 404:  # Only ignore 404 (not found) errors
                 raise
+
     def __init__(self, repo: str):
         token = os.getenv("GH_TOKEN")
         if not token:
@@ -181,9 +184,13 @@ class GithubQueue:
             self.logger.error(f"Failed to requeue job {job_id}: {e}")
             raise
 
-    def get_jobs(self, labels: list[str] = ["processing"], state: Literal["open", "closed"] = "open") -> list[tuple[int, datetime, dict[str, Any]]]:
+    def get_jobs(
+        self,
+        labels: list[str] = ["processing"],
+        state: Literal["open", "closed"] = "open",
+    ) -> list[tuple[int, datetime, dict[str, Any]]]:
         """Get all jobs with specified labels
-        
+
         Args:
             labels: List of label names to search for. Defaults to ["processing"]
             state: State of issues to fetch ("open" or "closed"). Defaults to "open"
