@@ -3,7 +3,7 @@ import logging
 import os
 import re
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 from dotenv import load_dotenv
 from github import Auth
 from github import Github
@@ -173,19 +173,19 @@ class GithubQueue:
             self.logger.error(f"Failed to requeue job {job_id}: {e}")
             raise
 
-    # add a parameter for the state (either open or closed), default is open AI!
-    def get_jobs(self, labels: list[str] = ["processing"]) -> list[tuple[int, datetime, dict[str, Any]]]:
+    def get_jobs(self, labels: list[str] = ["processing"], state: Literal["open", "closed"] = "open") -> list[tuple[int, datetime, dict[str, Any]]]:
         """Get all jobs with specified labels
         
         Args:
             labels: List of label names to search for. Defaults to ["processing"]
+            state: State of issues to fetch ("open" or "closed"). Defaults to "open"
 
         Returns:
             List of tuples containing (job_id, start_time, job_data)
             where start_time is when the matching label was added
         """
         try:
-            issues = self.repo.get_issues(labels=labels, state="open")
+            issues = self.repo.get_issues(labels=labels, state=state)
             jobs = []
 
             for issue in issues:
