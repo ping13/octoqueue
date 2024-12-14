@@ -187,9 +187,10 @@ class GithubQueue:
             jobs = []
 
             for issue in issues:
-                # Get the job data from the issue body
-                body = issue.body
-                data = json.loads(body[body.find("```json\n") + 7 : body.rfind("\n```")])
+                # Use extract_json instead of direct json parsing
+                data = extract_json(issue.body)
+                if data is None:
+                    continue
 
                 # Find when any of the matching labels was added by checking issue events
                 start_time = None
