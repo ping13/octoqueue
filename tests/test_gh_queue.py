@@ -16,8 +16,21 @@ class TestGitHubQueue(unittest.TestCase):
         """Setup the queue"""
         self.queue = GithubQueue("ping13/queue_gh_issues_test")
 
+    def _clean_pending_jobs(self):
+        """Helper method to clean up any pending jobs before tests"""
+        pending_jobs = self.queue.get_jobs(labels=["pending"])
+        if pending_jobs:
+            for job_id, _, _ in pending_jobs:
+                self.queue.complete(job_id)
+            time.sleep(2)  # Give GitHub API time to process
+        
+        # Verify queue is empty
+        pending_jobs = self.queue.get_jobs(labels=["pending"])
+        self.assertEqual(len(pending_jobs), 0, "Failed to clean up pending jobs")
+
     def test_01_add_issue(self):
         """Test adding an issue to the queue."""
+        self._clean_pending_jobs()
         cnt = self.queue.count_open()
         print(f"cnt = {cnt}")
         self.assertTrue(cnt >= 0)
@@ -29,6 +42,7 @@ class TestGitHubQueue(unittest.TestCase):
 
     def test_02_process_issue(self):
         """Get the job from the queue"""
+        self._clean_pending_jobs()
         job = self.queue.dequeue()
         self.assertTrue(isinstance(job, tuple))
         this_job_id, data = job
@@ -37,12 +51,14 @@ class TestGitHubQueue(unittest.TestCase):
 
     def test_03_complete_issue(self):
         """Complete a job from the queue"""
+        self._clean_pending_jobs()
         cnt = self.queue.count_open()
         self.queue.complete(TestGitHubQueue.job_id)
         self.assertEqual(self.queue.count_open(), cnt - 1)
 
     def test_04_requeue_issue(self):
         """Test requeuing a completed job"""
+        self._clean_pending_jobs()
         cnt = self.queue.count_open()
         self.queue.requeue(TestGitHubQueue.job_id, "Requeuing for test")
         self.assertEqual(self.queue.count_open(), cnt + 1)
@@ -56,6 +72,7 @@ class TestGitHubQueue(unittest.TestCase):
 
     def test_05_get_jobs(self):
         """Test getting list of jobs with different labels"""
+        self._clean_pending_jobs()
         # First ensure we have a processing job and a job with custom label
         job1_id = self.queue.enqueue({"test": "processing_check"}, "Processing Job Test")
         job2_id = self.queue.enqueue({"test": "custom_label_check"}, "Custom Label Test", 
@@ -105,6 +122,7 @@ class TestGitHubQueue(unittest.TestCase):
 
     def test_05b_fail_issue(self):
         """Test marking a job as failed"""
+        self._clean_pending_jobs()
         # Create a new job to test failure
         job_id = self.queue.enqueue({"test": "failure_test"}, "Failure Test Job")
         job = self.queue.dequeue()  # Mark it as processing
@@ -127,22 +145,14 @@ class TestGitHubQueue(unittest.TestCase):
 
     def test_06_complete_issue(self):
         """Complete a job from the queue"""
+        self._clean_pending_jobs()
         cnt = self.queue.count_open()
         self.queue.complete(TestGitHubQueue.job_id)
         self.assertEqual(self.queue.count_open(), cnt - 1)
 
     def test_07_fifo_order(self):
         """Test that dequeue follows FIFO (First In, First Out) order"""
-        # First ensure no pending jobs exist
-        pending_jobs = self.queue.get_jobs(labels=["pending"])
-        if pending_jobs:
-            for job_id, _, _ in pending_jobs:
-                self.queue.complete(job_id)
-            time.sleep(2)  # Give GitHub API time to process
-        
-        # Verify queue is empty before starting test
-        pending_jobs = self.queue.get_jobs(labels=["pending"])
-        self.assertEqual(len(pending_jobs), 0, "Queue must be empty before FIFO test")
+        self._clean_pending_jobs()
         
         # Create three test jobs in sequence
         job1_data = {"test": "fifo1"}
