@@ -95,6 +95,7 @@ class GithubQueue:
                     cnt += 1
         return cnt
 
+    # create a test that check if this is really FIFO and not FILO AI!
     def dequeue(self) -> tuple[int, dict[str, Any]] | None:
         """Get and claim next pending job"""
         try:

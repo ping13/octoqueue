@@ -64,10 +64,7 @@ class TestGitHubQueue(unittest.TestCase):
         # Dequeue first job to mark it as processing
         job = self.queue.dequeue()
         self.assertIsNotNone(job)
-    
-        # Add small delay to allow GitHub API to process the label change
-        time.sleep(5)
-    
+        
         # Test getting only processing jobs
         processing = self.queue.get_jobs()  # default label="processing"
         self.assertTrue(len(processing) >= 1)
