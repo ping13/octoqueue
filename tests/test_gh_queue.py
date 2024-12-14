@@ -131,6 +131,37 @@ class TestGitHubQueue(unittest.TestCase):
         self.queue.complete(TestGitHubQueue.job_id)
         self.assertEqual(self.queue.count_open(), cnt - 1)
 
+    def test_07_fifo_order(self):
+        """Test that dequeue follows FIFO (First In, First Out) order"""
+        # Create three test jobs in sequence
+        job1_data = {"test": "fifo1"}
+        job2_data = {"test": "fifo2"}
+        job3_data = {"test": "fifo3"}
+        
+        job1_id = self.queue.enqueue(job1_data, "FIFO Test 1")
+        time.sleep(2)  # Ensure distinct creation times
+        job2_id = self.queue.enqueue(job2_data, "FIFO Test 2")
+        time.sleep(2)  # Ensure distinct creation times
+        job3_id = self.queue.enqueue(job3_data, "FIFO Test 3")
+        
+        # Dequeue them in sequence and verify order
+        job1 = self.queue.dequeue()
+        self.assertEqual(job1[0], job1_id)
+        self.assertEqual(job1[1], job1_data)
+        
+        job2 = self.queue.dequeue()
+        self.assertEqual(job2[0], job2_id)
+        self.assertEqual(job2[1], job2_data)
+        
+        job3 = self.queue.dequeue()
+        self.assertEqual(job3[0], job3_id)
+        self.assertEqual(job3[1], job3_data)
+        
+        # Clean up
+        self.queue.complete(job1_id)
+        self.queue.complete(job2_id)
+        self.queue.complete(job3_id)
+
 
 import pytest
 from src.queue_gh_issues.gh_queue import GithubQueue
