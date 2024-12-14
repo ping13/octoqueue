@@ -73,10 +73,8 @@ class GithubQueue:
             title = f"Job {datetime.now().isoformat()}"
 
         labels = ["pending"]
-        # add tests for the additional label AI!
-        if additional_label:
-            labels += additional_labels
-            
+        if additional_labels:
+            labels.extend(additional_labels)
         try:
             issue = self.repo.create_issue(
                 title=title,
