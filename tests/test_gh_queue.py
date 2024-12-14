@@ -30,7 +30,6 @@ test_issue_data = {
 }
 
 class TestGitHubQueue(unittest.TestCase):
-    # renumber the methods test_0* from 1 to ... according to their order AI!
     
     def setUp(self):
         """Setup the queue"""
@@ -90,14 +89,14 @@ class TestGitHubQueue(unittest.TestCase):
         self.assertEqual(job_id, TestGitHubQueue.job_id)
         self.assertEqual(data, test_issue_data)
 
-    def test_04b_complete_issue(self):
+    def test_05_complete_issue(self):
         """Complete a job from the queue"""
         self._close_all_open_issues()
         cnt = self.queue.count_open()
         self.queue.complete(TestGitHubQueue.job_id)
         self.assertEqual(self.queue.count_open(), cnt - 1)
     
-    def test_05_get_jobs(self):
+    def test_06_get_jobs(self):
         """Test getting list of jobs with different labels"""
         self._close_all_open_issues()
         # First ensure we have a processing job and a job with custom label
@@ -147,7 +146,7 @@ class TestGitHubQueue(unittest.TestCase):
         self.queue.complete(job1_id)
         self.queue.complete(job2_id)
 
-    def test_05b_fail_issue(self):
+    def test_07_fail_issue(self):
         """Test marking a job as failed"""
         self._close_all_open_issues()
         # Create a new job to test failure
@@ -171,7 +170,7 @@ class TestGitHubQueue(unittest.TestCase):
         # - Verify the issue is closed
 
 
-    def test_07_fifo_order(self):
+    def test_08_fifo_order(self):
         """Test that dequeue follows FIFO (First In, First Out) order"""
         self._close_all_open_issues()
         
