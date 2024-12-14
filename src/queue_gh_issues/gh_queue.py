@@ -55,9 +55,10 @@ class GithubQueue:
         """Create required labels if they don't exist"""
         required = {
             "pending": "0dbf66",
-            "processing": "0052cc", 
+            "processing": "0052cc",
             "completed": "2cbe4e",
-            "failed": "d93f0b"  # Red color for failed
+            "failed": "d93f0b",  # Red color for failed
+            "mastodon": "800080"
         }
 
         existing = {label.name: label for label in self.repo.get_labels()}
@@ -66,11 +67,16 @@ class GithubQueue:
             if name not in existing:
                 self.repo.create_label(name=name, color=color)
 
-    def enqueue(self, data: dict[str, Any], title: str = None) -> int:
+    def enqueue(self, data: dict[str, Any], title: str = None, additional_labels = None) -> int:
         """Add a job to the queue"""
         if title is None:
             title = f"Job {datetime.now().isoformat()}"
 
+        labels = ["pending"]
+        # add tests for the additional label AI!
+        if additional_label:
+            labels += additional_labels
+            
         try:
             issue = self.repo.create_issue(
                 title=title,
@@ -121,7 +127,7 @@ class GithubQueue:
         try:
             issue = self.repo.get_issue(job_id)
             issue.remove_from_labels("processing")
-            issue.add_to_labels("failed") 
+            issue.add_to_labels("failed")
             issue.create_comment(comment)
             issue.edit(state="closed")
         except GithubException as e:
