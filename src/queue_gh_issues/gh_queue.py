@@ -35,7 +35,7 @@ def extract_json(text):
 
     return None
 
-
+# the call remove_from_labels for an issue fails if the label does not exist. write a helper function that tries to remove the label, but ignores a GitHub exception if it the label does not exist for the issue. AI!
 class GithubQueue:
     def __init__(self, repo: str):
         token = os.getenv("GH_TOKEN")
