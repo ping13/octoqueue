@@ -30,7 +30,7 @@ dependencies = [
 description = "A simple queue implementatione based on GitHub issues"
 keywords = [""]
 license = {file = "LICENSE"}
-name = "queue_gh_issues"
+name = "octoqeue"
 readme = {file = "README.md", content-type = "text/markdown"}
 requires-python = ">=3.10"
 version = "0.1.0"
@@ -62,9 +62,9 @@ publishing = [
 ]
 
 [project.urls]
-Repository = "https://github.com/ping13/queue_gh_issues"
-Issues = "https://github.com/ping13/queue_gh_issues/issues"
-ReadTheDocs = "https://queue_gh_issues.readthedocs.io"
+Repository = "https://github.com/ping13/octoqueue"
+Issues = "https://github.com/ping13/octoqueue/issues"
+ReadTheDocs = "https://octoqueue.readthedocs.io"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -72,7 +72,7 @@ testpaths = ["tests"]
 
 [tool.coverage.run]
 branch = true
-source = ["src/queue_gh_issues"]
+source = ["src/octoqueue"]
 command_line = "-m pytest"
 
 [tool.tox]
@@ -122,7 +122,7 @@ pydocstyle.convention = "google"
 ]
 
 [tool.ruff.lint.isort]
-known-first-party = ["queue_gh_issues"]
+known-first-party = ["octoqeue"]
 force-single-line = true
 no-lines-before = ["future","standard-library","third-party","first-party","local-folder"]
 
@@ -130,7 +130,7 @@ no-lines-before = ["future","standard-library","third-party","first-party","loca
 current_version = "0.1.0"
 
 [[tool.bumpversion.files]]
-filename = "src/queue_gh_issues/__init__.py"
+filename = "src/octoqueue/__init__.py"
 
 [[tool.bumpversion.files]]
 filename = "pyproject.toml"

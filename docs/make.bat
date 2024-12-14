@@ -9,7 +9,7 @@ if "%SPHINXBUILD%" == "" (
 )
 set SOURCEDIR=.
 set BUILDDIR=_build
-set SPHINXPROJ=queue_gh_issues
+set SPHINXPROJ=octoqueue
 
 if "%1" == "" goto help
 

@@ -1,9 +1,8 @@
-"""Tests for the queue_gh_issues.gh_queue module."""
+"""Tests for the octoqueue.queue module."""
 
 import unittest
 import pytest
-from queue_gh_issues import GithubQueue
-from src.queue_gh_issues.gh_queue import GithubQueue
+from octoqueue import GithubQueue
 
 
 @pytest.fixture
@@ -32,7 +31,7 @@ test_issue_data = {
 class TestGitHubQueue(unittest.TestCase):
     def setUp(self):
         """Setup the queue"""
-        self.queue = GithubQueue("ping13/queue_gh_issues_test")
+        self.queue = GithubQueue("ping13/octoqueue_test")
 
     def _close_all_open_issues(self):
         """Helper method to close all open issues before doing the tests to

@@ -1,9 +1,9 @@
-.. queue_gh_issues documentation master file, created by
+.. octoqueue documentation master file, created by
    sphinx-quickstart on Wed May  5 22:45:36 2021.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to queue_gh_issues's documentation!
+Welcome to octoqueue's documentation!
 ==========================================================
 
 .. toctree::

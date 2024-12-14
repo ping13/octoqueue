@@ -443,7 +443,7 @@ name = "importlib-metadata"
 version = "8.5.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "zipp" },
+    { name = "zipp", marker = "python_full_version < '3.12'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/cd/12/33e59336dca5be0c398a7482335911a33aa0e20776128f038019f1a95f1b/importlib_metadata-8.5.0.tar.gz", hash = "sha256:71522656f0abace1d072b9e5481a48f07c138e00f079c38c8f883823f9c26bd7", size = 55304 }
 wheels = [
@@ -680,6 +680,67 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/a8/ca/bbd2b2dab31ceae38cfa673861cab81df5ed5be1fe47b6c4f5aa41729aa2/nh3-0.2.19-cp38-abi3-musllinux_1_2_x86_64.whl", hash = "sha256:00810cd5275f5c3f44b9eb0e521d1a841ee2f8023622de39ffc7d88bd533d8e0", size = 908976 },
     { url = "https://files.pythonhosted.org/packages/4c/8f/6452eb1184ad87cdd2cac7ee3ebd67a2aadb554d25572c1778efdf807e1e/nh3-0.2.19-cp38-abi3-win32.whl", hash = "sha256:7e98621856b0a911c21faa5eef8f8ea3e691526c2433f9afc2be713cb6fbdb48", size = 540528 },
     { url = "https://files.pythonhosted.org/packages/58/d6/285df10307f16fcce9afbd133b04b4bc7d7f9b84b02f0f724bab30dacdd9/nh3-0.2.19-cp38-abi3-win_amd64.whl", hash = "sha256:75c7cafb840f24430b009f7368945cb5ca88b2b54bb384ebfba495f16bc9c121", size = 542316 },
+]
+
+[[package]]
+name = "octoqeue"
+version = "0.1.0"
+source = { editable = "." }
+dependencies = [
+    { name = "pygithub" },
+    { name = "pytest-mock" },
+    { name = "python-dotenv" },
+]
+
+[package.optional-dependencies]
+dev = [
+    { name = "build" },
+    { name = "bump-my-version" },
+    { name = "coverage", extra = ["toml"] },
+    { name = "myst-parser" },
+    { name = "pytest" },
+    { name = "pytest-cov" },
+    { name = "ruff" },
+    { name = "sphinx" },
+    { name = "sphinx-autoapi" },
+    { name = "sphinx-rtd-theme" },
+    { name = "tox" },
+]
+docs = [
+    { name = "myst-parser" },
+    { name = "sphinx" },
+    { name = "sphinx-autoapi" },
+    { name = "sphinx-rtd-theme" },
+]
+publishing = [
+    { name = "build" },
+    { name = "twine" },
+    { name = "wheel" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "build", marker = "extra == 'dev'" },
+    { name = "build", marker = "extra == 'publishing'" },
+    { name = "bump-my-version", marker = "extra == 'dev'" },
+    { name = "coverage", extras = ["toml"], marker = "extra == 'dev'" },
+    { name = "myst-parser", marker = "extra == 'dev'" },
+    { name = "myst-parser", marker = "extra == 'docs'" },
+    { name = "pygithub", specifier = ">=2.5.0" },
+    { name = "pytest", marker = "extra == 'dev'" },
+    { name = "pytest-cov", marker = "extra == 'dev'" },
+    { name = "pytest-mock", specifier = ">=3.14.0" },
+    { name = "python-dotenv", specifier = ">=1.0.1" },
+    { name = "ruff", marker = "extra == 'dev'" },
+    { name = "sphinx", marker = "extra == 'dev'" },
+    { name = "sphinx", marker = "extra == 'docs'" },
+    { name = "sphinx-autoapi", marker = "extra == 'dev'" },
+    { name = "sphinx-autoapi", marker = "extra == 'docs'" },
+    { name = "sphinx-rtd-theme", marker = "extra == 'dev'" },
+    { name = "sphinx-rtd-theme", marker = "extra == 'docs'" },
+    { name = "tox", marker = "extra == 'dev'" },
+    { name = "twine", marker = "extra == 'publishing'" },
+    { name = "wheel", marker = "extra == 'publishing'" },
 ]
 
 [[package]]
@@ -1037,67 +1098,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/84/d0/d73525aeba800df7030ac187d09c59dc40df1c878b4fab8669bdc805535d/questionary-2.0.1.tar.gz", hash = "sha256:bcce898bf3dbb446ff62830c86c5c6fb9a22a54146f0f5597d3da43b10d8fc8b", size = 24726 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/0b/e7/2dd8f59d1d328773505f78b85405ddb1cfe74126425d076ce72e65540b8b/questionary-2.0.1-py3-none-any.whl", hash = "sha256:8ab9a01d0b91b68444dff7f6652c1e754105533f083cbe27597c8110ecc230a2", size = 34248 },
-]
-
-[[package]]
-name = "queue-gh-issues"
-version = "0.1.0"
-source = { editable = "." }
-dependencies = [
-    { name = "pygithub" },
-    { name = "pytest-mock" },
-    { name = "python-dotenv" },
-]
-
-[package.optional-dependencies]
-dev = [
-    { name = "build" },
-    { name = "bump-my-version" },
-    { name = "coverage", extra = ["toml"] },
-    { name = "myst-parser" },
-    { name = "pytest" },
-    { name = "pytest-cov" },
-    { name = "ruff" },
-    { name = "sphinx" },
-    { name = "sphinx-autoapi" },
-    { name = "sphinx-rtd-theme" },
-    { name = "tox" },
-]
-docs = [
-    { name = "myst-parser" },
-    { name = "sphinx" },
-    { name = "sphinx-autoapi" },
-    { name = "sphinx-rtd-theme" },
-]
-publishing = [
-    { name = "build" },
-    { name = "twine" },
-    { name = "wheel" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "build", marker = "extra == 'dev'" },
-    { name = "build", marker = "extra == 'publishing'" },
-    { name = "bump-my-version", marker = "extra == 'dev'" },
-    { name = "coverage", extras = ["toml"], marker = "extra == 'dev'" },
-    { name = "myst-parser", marker = "extra == 'dev'" },
-    { name = "myst-parser", marker = "extra == 'docs'" },
-    { name = "pygithub", specifier = ">=2.5.0" },
-    { name = "pytest", marker = "extra == 'dev'" },
-    { name = "pytest-cov", marker = "extra == 'dev'" },
-    { name = "pytest-mock", specifier = ">=3.14.0" },
-    { name = "python-dotenv", specifier = ">=1.0.1" },
-    { name = "ruff", marker = "extra == 'dev'" },
-    { name = "sphinx", marker = "extra == 'dev'" },
-    { name = "sphinx", marker = "extra == 'docs'" },
-    { name = "sphinx-autoapi", marker = "extra == 'dev'" },
-    { name = "sphinx-autoapi", marker = "extra == 'docs'" },
-    { name = "sphinx-rtd-theme", marker = "extra == 'dev'" },
-    { name = "sphinx-rtd-theme", marker = "extra == 'docs'" },
-    { name = "tox", marker = "extra == 'dev'" },
-    { name = "twine", marker = "extra == 'publishing'" },
-    { name = "wheel", marker = "extra == 'publishing'" },
 ]
 
 [[package]]

@@ -17,7 +17,7 @@
 
 # -- Project information -----------------------------------------------------
 
-project = u"queue_gh_issues"
+project = u"octoqueue"
 copyright = u"2024-12-09 21:37:31, Stephan Heuel"
 author = u"Stephan Heuel"
 
@@ -61,7 +61,7 @@ todo_include_todos = False
 
 # -- Use autoapi.extension to run sphinx-apidoc -------
 
-autoapi_dirs = ['../src/queue_gh_issues']
+autoapi_dirs = ['../src/octoqueue']
 
 # -- Options for HTML output ----------------------------------------------
 
