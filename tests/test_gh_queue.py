@@ -4,45 +4,65 @@ import time
 import unittest
 from queue_gh_issues import GithubQueue
 
+import pytest
+from src.queue_gh_issues.gh_queue import GithubQueue
+
+
+@pytest.fixture
+def mock_repo(mocker):
+    """Create a mock repository"""
+    mock = mocker.Mock()
+    mock.get_labels.return_value = []
+    mock.create_label = mocker.Mock()
+    mock.create_issue = mocker.Mock()
+
+    # Mock Github client
+    mocker.patch("github.Github.get_repo", return_value=mock)
+    # Mock environment variable
+    mocker.patch("os.getenv", return_value="fake-token")
+
+    return mock
+
 test_issue_data = {
     "title": "Test Issue 😃",
     "body": "Test Description, äöü, 世界 🌎",
     "labels": ["bug"],
 }
 
-
 class TestGitHubQueue(unittest.TestCase):
+    # renumber the methods test_0* from 1 to ... according to their order AI!
+    
     def setUp(self):
         """Setup the queue"""
         self.queue = GithubQueue("ping13/queue_gh_issues_test")
 
-    def _clean_pending_jobs(self):
-        """Helper method to clean up any pending jobs before tests"""
-        pending_jobs = self.queue.get_jobs(labels=["pending"])
-        if pending_jobs:
-            for job_id, _, _ in pending_jobs:
-                self.queue.complete(job_id)
-            time.sleep(2)  # Give GitHub API time to process
+    def _close_all_open_issues(self):
+        """Helper method to close all open issues before doing the tests to
+        clean up and have safe state to run a test"""
+        open_issues = self.queue.repo.get_issues(state="open")
+
+        if open_issues:
+            for issue in open_issues:
+                issue.edit(state="closed")
         
         # Verify queue is empty
-        pending_jobs = self.queue.get_jobs(labels=["pending"])
-        self.assertEqual(len(pending_jobs), 0, "Failed to clean up pending jobs")
+        open_issues = self.queue.get_jobs()
+        self.assertEqual(len(open_issues), 0, "Failed to clean up pending jobs")
 
     def test_01_add_issue(self):
         """Test adding an issue to the queue."""
-        self._clean_pending_jobs()
+        self._close_all_open_issues()
         cnt = self.queue.count_open()
         print(f"cnt = {cnt}")
         self.assertTrue(cnt >= 0)
         TestGitHubQueue.job_id = self.queue.enqueue(test_issue_data)
         print(f"job_id = {self.job_id}, cnt = {cnt}")
         self.assertTrue(self.job_id > 0)
-        time.sleep(5)
         self.assertEqual(self.queue.count_open(), cnt + 1)
 
     def test_02_process_issue(self):
         """Get the job from the queue"""
-        self._clean_pending_jobs()
+        # no clean up as it relies on test_01_add_issue
         job = self.queue.dequeue()
         self.assertTrue(isinstance(job, tuple))
         this_job_id, data = job
@@ -51,14 +71,14 @@ class TestGitHubQueue(unittest.TestCase):
 
     def test_03_complete_issue(self):
         """Complete a job from the queue"""
-        self._clean_pending_jobs()
+        # no clean up as it relies on test_01_process_issue
         cnt = self.queue.count_open()
         self.queue.complete(TestGitHubQueue.job_id)
         self.assertEqual(self.queue.count_open(), cnt - 1)
 
     def test_04_requeue_issue(self):
         """Test requeuing a completed job"""
-        self._clean_pending_jobs()
+        # no clean up as it relies on test_03_complete_issue
         cnt = self.queue.count_open()
         self.queue.requeue(TestGitHubQueue.job_id, "Requeuing for test")
         self.assertEqual(self.queue.count_open(), cnt + 1)
@@ -70,9 +90,16 @@ class TestGitHubQueue(unittest.TestCase):
         self.assertEqual(job_id, TestGitHubQueue.job_id)
         self.assertEqual(data, test_issue_data)
 
+    def test_04b_complete_issue(self):
+        """Complete a job from the queue"""
+        self._close_all_open_issues()
+        cnt = self.queue.count_open()
+        self.queue.complete(TestGitHubQueue.job_id)
+        self.assertEqual(self.queue.count_open(), cnt - 1)
+    
     def test_05_get_jobs(self):
         """Test getting list of jobs with different labels"""
-        self._clean_pending_jobs()
+        self._close_all_open_issues()
         # First ensure we have a processing job and a job with custom label
         job1_id = self.queue.enqueue({"test": "processing_check"}, "Processing Job Test")
         job2_id = self.queue.enqueue({"test": "custom_label_check"}, "Custom Label Test", 
@@ -112,9 +139,9 @@ class TestGitHubQueue(unittest.TestCase):
         
         self.assertTrue(found_custom, "Recently created custom labeled job not found")
         
-        # Test getting jobs with multiple labels
-        multi_labeled = self.queue.get_jobs(labels=["processing", "mastodon"])
-        self.assertTrue(len(multi_labeled) >= 2)
+        # Test getting jobs with the additional label
+        mastodon_labeled = self.queue.get_jobs(labels=["mastodon"])
+        self.assertTrue(len(mastodon_labeled) == 1)
         
         # Cleanup
         self.queue.complete(job1_id)
@@ -122,7 +149,7 @@ class TestGitHubQueue(unittest.TestCase):
 
     def test_05b_fail_issue(self):
         """Test marking a job as failed"""
-        self._clean_pending_jobs()
+        self._close_all_open_issues()
         # Create a new job to test failure
         job_id = self.queue.enqueue({"test": "failure_test"}, "Failure Test Job")
         job = self.queue.dequeue()  # Mark it as processing
@@ -143,16 +170,10 @@ class TestGitHubQueue(unittest.TestCase):
         # - Verify the failure message was added as a comment
         # - Verify the issue is closed
 
-    def test_06_complete_issue(self):
-        """Complete a job from the queue"""
-        self._clean_pending_jobs()
-        cnt = self.queue.count_open()
-        self.queue.complete(TestGitHubQueue.job_id)
-        self.assertEqual(self.queue.count_open(), cnt - 1)
 
     def test_07_fifo_order(self):
         """Test that dequeue follows FIFO (First In, First Out) order"""
-        self._clean_pending_jobs()
+        self._close_all_open_issues()
         
         # Create three test jobs in sequence
         job1_data = {"test": "fifo1"}
@@ -160,9 +181,7 @@ class TestGitHubQueue(unittest.TestCase):
         job3_data = {"test": "fifo3"}
         
         job1_id = self.queue.enqueue(job1_data, "FIFO Test 1")
-        time.sleep(2)  # Ensure distinct creation times
         job2_id = self.queue.enqueue(job2_data, "FIFO Test 2")
-        time.sleep(2)  # Ensure distinct creation times
         job3_id = self.queue.enqueue(job3_data, "FIFO Test 3")
         
         # Dequeue them in sequence and verify order
@@ -182,26 +201,6 @@ class TestGitHubQueue(unittest.TestCase):
         self.queue.complete(job1_id)
         self.queue.complete(job2_id)
         self.queue.complete(job3_id)
-
-
-import pytest
-from src.queue_gh_issues.gh_queue import GithubQueue
-
-
-@pytest.fixture
-def mock_repo(mocker):
-    """Create a mock repository"""
-    mock = mocker.Mock()
-    mock.get_labels.return_value = []
-    mock.create_label = mocker.Mock()
-    mock.create_issue = mocker.Mock()
-
-    # Mock Github client
-    mocker.patch("github.Github.get_repo", return_value=mock)
-    # Mock environment variable
-    mocker.patch("os.getenv", return_value="fake-token")
-
-    return mock
 
 
 def test_enqueue_with_additional_labels(mock_repo):
