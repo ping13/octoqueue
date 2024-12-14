@@ -133,10 +133,18 @@ class TestGitHubQueue(unittest.TestCase):
 
     def test_07_fifo_order(self):
         """Test that dequeue follows FIFO (First In, First Out) order"""
-        # Create three test jobs in sequence
-
-        # This test assumes that there are no other pending tests and no other process interferes, any suggestion to make this test more robust? AI!
+        # First ensure no pending jobs exist
+        pending_jobs = self.queue.get_jobs(labels=["pending"])
+        if pending_jobs:
+            for job_id, _, _ in pending_jobs:
+                self.queue.complete(job_id)
+            time.sleep(2)  # Give GitHub API time to process
         
+        # Verify queue is empty before starting test
+        pending_jobs = self.queue.get_jobs(labels=["pending"])
+        self.assertEqual(len(pending_jobs), 0, "Queue must be empty before FIFO test")
+        
+        # Create three test jobs in sequence
         job1_data = {"test": "fifo1"}
         job2_data = {"test": "fifo2"}
         job3_data = {"test": "fifo3"}
