@@ -35,8 +35,19 @@ def extract_json(text):
 
     return None
 
-# the call remove_from_labels for an issue fails if the label does not exist. write a helper function that tries to remove the label, but ignores a GitHub exception if it the label does not exist for the issue. AI!
 class GithubQueue:
+    def _safe_remove_label(self, issue, label: str) -> None:
+        """Safely remove a label from an issue, ignoring if it doesn't exist
+        
+        Args:
+            issue: GitHub issue object
+            label: Name of label to remove
+        """
+        try:
+            issue.remove_from_labels(label)
+        except GithubException as e:
+            if e.status != 404:  # Only ignore 404 (not found) errors
+                raise
     def __init__(self, repo: str):
         token = os.getenv("GH_TOKEN")
         if not token:
@@ -123,7 +134,7 @@ class GithubQueue:
             comment = "This job has failed"
         try:
             issue = self.repo.get_issue(job_id)
-            issue.remove_from_labels("processing")
+            self._safe_remove_label(issue, "processing")
             issue.add_to_labels("failed")
             issue.create_comment(comment)
             issue.edit(state="closed")
@@ -137,7 +148,7 @@ class GithubQueue:
             comment = "This has been completed, thank you"
         try:
             issue = self.repo.get_issue(job_id)
-            issue.remove_from_labels("processing")
+            self._safe_remove_label(issue, "processing")
             issue.add_to_labels("completed")
             issue.create_comment(comment)
             issue.edit(state="closed")
@@ -154,10 +165,7 @@ class GithubQueue:
 
             # Remove existing status labels
             for label in ["processing", "completed"]:
-                try:
-                    issue.remove_from_labels(label)
-                except GithubException:
-                    pass  # Label might not exist
+                self._safe_remove_label(issue, label)
 
             # Add back to pending
             issue.add_to_labels("pending")
