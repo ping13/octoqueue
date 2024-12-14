@@ -172,27 +172,29 @@ class GithubQueue:
             self.logger.error(f"Failed to requeue job {job_id}: {e}")
             raise
 
-    def get_processing_jobs(self) -> list[tuple[int, datetime, dict[str, Any]]]:
-        # redefine so that it gets all jobs with some labels, one argument is a list of labels to search for, default is "processing" AI!
-        """Get all jobs currently being processed
+    def get_processing_jobs(self, labels: list[str] = ["processing"]) -> list[tuple[int, datetime, dict[str, Any]]]:
+        """Get all jobs with specified labels
+        
+        Args:
+            labels: List of label names to search for. Defaults to ["processing"]
 
         Returns:
             List of tuples containing (job_id, start_time, job_data)
-            where start_time is when the processing label was added
+            where start_time is when the matching label was added
         """
         try:
-            processing = self.repo.get_issues(labels=["processing"], state="open")
+            issues = self.repo.get_issues(labels=labels, state="open")
             jobs = []
 
-            for issue in processing:
+            for issue in issues:
                 # Get the job data from the issue body
                 body = issue.body
                 data = json.loads(body[body.find("```json\n") + 7 : body.rfind("\n```")])
 
-                # Find when the processing label was added by checking issue events
+                # Find when any of the matching labels was added by checking issue events
                 start_time = None
                 for event in issue.get_events():
-                    if event.event == "labeled" and event.label.name == "processing":
+                    if event.event == "labeled" and event.label.name in labels:
                         start_time = event.created_at
                         break
 
@@ -201,5 +203,5 @@ class GithubQueue:
             return jobs
 
         except GithubException as e:
-            self.logger.error(f"Failed to get processing jobs: {e}")
+            self.logger.error(f"Failed to get jobs with labels {labels}: {e}")
             raise
