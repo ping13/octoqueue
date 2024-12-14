@@ -107,8 +107,11 @@ class TestGitHubQueue(unittest.TestCase):
         cnt = self.queue.count_open()
         self.queue.complete(TestGitHubQueue.job_id)
         self.assertEqual(self.queue.count_open(), cnt - 1)
+
+
 import pytest
 from src.queue_gh_issues.gh_queue import GithubQueue
+
 
 @pytest.fixture
 def mock_repo(mocker):
@@ -117,35 +120,37 @@ def mock_repo(mocker):
     mock.get_labels.return_value = []
     mock.create_label = mocker.Mock()
     mock.create_issue = mocker.Mock()
-    
+
     # Mock Github client
-    mocker.patch('github.Github.get_repo', return_value=mock)
+    mocker.patch("github.Github.get_repo", return_value=mock)
     # Mock environment variable
-    mocker.patch('os.getenv', return_value="fake-token")
-    
+    mocker.patch("os.getenv", return_value="fake-token")
+
     return mock
+
 
 def test_enqueue_with_additional_labels(mock_repo):
     """Test enqueueing with additional labels"""
     queue = GithubQueue("test/repo")
     test_data = {"test": "data"}
     additional_labels = ["mastodon", "custom-label"]
-    
+
     queue.enqueue(test_data, additional_labels=additional_labels)
-    
+
     # Verify create_issue was called with all expected labels
     expected_labels = ["pending"] + additional_labels
     mock_repo.create_issue.assert_called_once()
     call_args = mock_repo.create_issue.call_args[1]
     assert set(call_args["labels"]) == set(expected_labels)
 
+
 def test_enqueue_without_additional_labels(mock_repo):
     """Test enqueueing without additional labels"""
     queue = GithubQueue("test/repo")
     test_data = {"test": "data"}
-    
+
     queue.enqueue(test_data)
-    
+
     # Verify create_issue was called with only pending label
     mock_repo.create_issue.assert_called_once()
     call_args = mock_repo.create_issue.call_args[1]

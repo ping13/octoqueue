@@ -24,6 +24,7 @@ classifiers = [
 ]
 dependencies = [
     "pygithub>=2.5.0",
+    "pytest-mock>=3.14.0",
     "python-dotenv>=1.0.1",
 ]
 description = "A simple queue implementatione based on GitHub issues"
