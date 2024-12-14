@@ -77,7 +77,7 @@ class GithubQueue:
             issue = self.repo.create_issue(
                 title=title,
                 body=f"```json\n{json.dumps(data, ensure_ascii=False, indent=2)}\n```",
-                labels=["pending"],
+                labels=labels,
             )
             return issue.number
         except GithubException as e:
