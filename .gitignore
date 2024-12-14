@@ -67,4 +67,7 @@ venv.bak/
 *.swp
 *.swo
 *.orig
+
+# my stuff
 .aider*
+.python-version
