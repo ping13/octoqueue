@@ -134,6 +134,9 @@ class TestGitHubQueue(unittest.TestCase):
     def test_07_fifo_order(self):
         """Test that dequeue follows FIFO (First In, First Out) order"""
         # Create three test jobs in sequence
+
+        # This test assumes that there are no other pending tests and no other process interferes, any suggestion to make this test more robust? AI!
+        
         job1_data = {"test": "fifo1"}
         job2_data = {"test": "fifo2"}
         job3_data = {"test": "fifo3"}
