@@ -103,7 +103,8 @@ class GithubQueue:
             if not issues.totalCount:
                 return None
 
-            issue = issues[0]
+            print(list(issues))
+            issue = issues[-1]
             body = issue.body
             data = extract_json(body)
 
@@ -172,6 +173,7 @@ class GithubQueue:
             self.logger.error(f"Failed to requeue job {job_id}: {e}")
             raise
 
+    # add a parameter for the state (either open or closed), default is open AI!
     def get_jobs(self, labels: list[str] = ["processing"]) -> list[tuple[int, datetime, dict[str, Any]]]:
         """Get all jobs with specified labels
         
