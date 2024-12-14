@@ -2,8 +2,6 @@ import json
 import logging
 import os
 import re
-import sys
-import time
 from datetime import datetime
 from typing import Any
 from dotenv import load_dotenv
@@ -58,7 +56,7 @@ class GithubQueue:
             "processing": "0052cc",
             "completed": "2cbe4e",
             "failed": "d93f0b",  # Red color for failed
-            "mastodon": "800080"
+            "mastodon": "800080",
         }
 
         existing = {label.name: label for label in self.repo.get_labels()}
@@ -67,7 +65,7 @@ class GithubQueue:
             if name not in existing:
                 self.repo.create_label(name=name, color=color)
 
-    def enqueue(self, data: dict[str, Any], title: str = None, additional_labels = None) -> int:
+    def enqueue(self, data: dict[str, Any], title: str = None, additional_labels=None) -> int:
         """Add a job to the queue"""
         if title is None:
             title = f"Job {datetime.now().isoformat()}"
@@ -204,31 +202,3 @@ class GithubQueue:
         except GithubException as e:
             self.logger.error(f"Failed to get processing jobs: {e}")
             raise
-
-
-if __name__ == "__main__":
-
-    def process_job(data):
-        time.sleep(5)
-        print(data)
-
-    queue = GithubQueue("ping13/topoprint-ch")
-
-    # Producer
-    job_id = queue.enqueue({"task": "process_file", "path": "data.csv"})
-    print(f"Enqueued job: {job_id}")
-
-    # Consumer
-    while True:
-        job = queue.dequeue()
-        if job:
-            job_id, data = job
-            try:
-                # Process job
-                process_job(data)
-                queue.complete(job_id)
-            except Exception as e:
-                print(f"Error processing job {job_id}: {e}")
-        else:
-            print("I am done, thank you")
-            sys.exit(0)
