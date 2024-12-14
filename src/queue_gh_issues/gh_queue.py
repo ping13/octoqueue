@@ -172,7 +172,7 @@ class GithubQueue:
             self.logger.error(f"Failed to requeue job {job_id}: {e}")
             raise
 
-    def get_processing_jobs(self, labels: list[str] = ["processing"]) -> list[tuple[int, datetime, dict[str, Any]]]:
+    def get_jobs(self, labels: list[str] = ["processing"]) -> list[tuple[int, datetime, dict[str, Any]]]:
         """Get all jobs with specified labels
         
         Args:

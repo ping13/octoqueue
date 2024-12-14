@@ -54,8 +54,8 @@ class TestGitHubQueue(unittest.TestCase):
         self.assertEqual(job_id, TestGitHubQueue.job_id)
         self.assertEqual(data, test_issue_data)
 
-    def test_05_get_processing_jobs(self):
-        """Test getting list of processing jobs with different labels"""
+    def test_05_get_jobs(self):
+        """Test getting list of jobs with different labels"""
         # First ensure we have a processing job and a job with custom label
         job1_id = self.queue.enqueue({"test": "processing_check"}, "Processing Job Test")
         job2_id = self.queue.enqueue({"test": "custom_label_check"}, "Custom Label Test", 
@@ -69,7 +69,7 @@ class TestGitHubQueue(unittest.TestCase):
         time.sleep(5)
     
         # Test getting only processing jobs
-        processing = self.queue.get_processing_jobs()  # default label="processing"
+        processing = self.queue.get_jobs()  # default label="processing"
         self.assertTrue(len(processing) >= 1)
         
         # Verify the structure of returned data for processing jobs
@@ -84,7 +84,7 @@ class TestGitHubQueue(unittest.TestCase):
         self.assertTrue(found_processing, "Recently created processing job not found")
         
         # Test getting jobs with custom label
-        custom_labeled = self.queue.get_processing_jobs(labels=["mastodon"])
+        custom_labeled = self.queue.get_jobs(labels=["mastodon"])
         self.assertTrue(len(custom_labeled) >= 1)
         
         # Verify the structure of returned data for custom labeled jobs
@@ -99,7 +99,7 @@ class TestGitHubQueue(unittest.TestCase):
         self.assertTrue(found_custom, "Recently created custom labeled job not found")
         
         # Test getting jobs with multiple labels
-        multi_labeled = self.queue.get_processing_jobs(labels=["processing", "mastodon"])
+        multi_labeled = self.queue.get_jobs(labels=["processing", "mastodon"])
         self.assertTrue(len(multi_labeled) >= 2)
         
         # Cleanup
