@@ -173,6 +173,7 @@ class GithubQueue:
             raise
 
     def get_processing_jobs(self) -> list[tuple[int, datetime, dict[str, Any]]]:
+        # redefine so that it gets all jobs with some labels, one argument is a list of labels to search for, default is "processing" AI!
         """Get all jobs currently being processed
 
         Returns:
