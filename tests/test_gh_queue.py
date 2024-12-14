@@ -113,6 +113,7 @@ class TestGitHubQueue(unittest.TestCase):
 
         # Test getting only processing jobs
         processing = self.queue.get_jobs()  # default label="processing"
+        print(len(processing))
         self.assertTrue(len(processing) >= 1)
 
         # Verify the structure of returned data for processing jobs

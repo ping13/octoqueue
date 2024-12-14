@@ -4,6 +4,7 @@
 all: help
 
 test:		## run unittests
+	@echo "**** ATTENTION: make sure that the tests are not run somewehere else (like in a CI/CD pipeline) due to side effects"
 	uv run python -m pytest -x
 
 
