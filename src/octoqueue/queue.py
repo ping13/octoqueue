@@ -79,7 +79,7 @@ class GithubQueue:
             if name not in existing:
                 self.repo.create_label(name=name, color=color)
 
-    def enqueue(self, data: dict[str, Any], title: str = None, additional_labels=None) -> int:
+    def enqueue(self, data: dict[str, Any], title: str = None, additional_labels: list = None) -> int:
         """Add a job to the queue"""
         if title is None:
             title = f"Job {datetime.now().isoformat()}"
