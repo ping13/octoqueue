@@ -4,6 +4,8 @@ import unittest
 import pytest
 from octoqueue import GithubQueue
 
+WAIT_SECONDS = 5
+
 
 @pytest.fixture
 def mock_repo(mocker):
@@ -44,19 +46,21 @@ class TestGitHubQueue(unittest.TestCase):
                 issue.edit(state="closed")
 
         # Verify queue is empty
-        open_issues = self.queue.get_jobs()
-        self.assertEqual(len(open_issues), 0, "Failed to clean up pending jobs")
+        cnt = self.queue.count_open(wait_sec=WAIT_SECONDS)
+        self.assertEqual(cnt, 0, "Failed to clean up pending jobs")
+        print("all issues are closed")
 
     def test_01_add_issue(self):
         """Test adding an issue to the queue."""
         self._close_all_open_issues()
-        cnt = self.queue.count_open()
+        cnt = self.queue.count_open(wait_sec=WAIT_SECONDS)
         print(f"cnt = {cnt}")
-        self.assertTrue(cnt >= 0)
+        self.assertTrue(cnt == 0, "count is supposed to be zero after closing all open issues")
         TestGitHubQueue.job_id = self.queue.enqueue(test_issue_data)
-        print(f"job_id = {self.job_id}, cnt = {cnt}")
+        print(f"job_id = {self.job_id}")
         self.assertTrue(self.job_id > 0)
-        self.assertEqual(self.queue.count_open(), cnt + 1)
+        cnt = self.queue.count_open(wait_sec=WAIT_SECONDS)
+        self.assertEqual(cnt, 1)
 
     def test_02_process_issue(self):
         """Get the job from the queue"""
@@ -70,16 +74,16 @@ class TestGitHubQueue(unittest.TestCase):
     def test_03_complete_issue(self):
         """Complete a job from the queue"""
         # no clean up as it relies on test_01_process_issue
-        cnt = self.queue.count_open()
+        cnt = self.queue.count_open(wait_sec=WAIT_SECONDS)
         self.queue.complete(TestGitHubQueue.job_id)
-        self.assertEqual(self.queue.count_open(), cnt - 1)
+        self.assertEqual(self.queue.count_open(wait_sec=WAIT_SECONDS), cnt - 1)
 
     def test_04_requeue_issue(self):
         """Test requeuing a completed job"""
         # no clean up as it relies on test_03_complete_issue
-        cnt = self.queue.count_open()
+        cnt = self.queue.count_open(wait_sec=WAIT_SECONDS)
         self.queue.requeue(TestGitHubQueue.job_id, "Requeuing for test")
-        self.assertEqual(self.queue.count_open(), cnt + 1)
+        self.assertEqual(self.queue.count_open(wait_sec=WAIT_SECONDS), cnt + 1)
 
         # Verify it's back in pending state
         job = self.queue.dequeue()
@@ -91,9 +95,9 @@ class TestGitHubQueue(unittest.TestCase):
     def test_05_complete_requeued_issue(self):
         """Complete a job from the queue"""
         # no clean up as it relies on test_04_requeue_issue
-        cnt = self.queue.count_open()
+        cnt = self.queue.count_open(wait_sec=WAIT_SECONDS)
         self.queue.complete(TestGitHubQueue.job_id)
-        self.assertEqual(self.queue.count_open(), cnt - 1)
+        self.assertEqual(self.queue.count_open(wait_sec=WAIT_SECONDS), cnt - 1)
 
     def test_06_get_jobs(self):
         """Test getting list of jobs with different labels"""
@@ -106,14 +110,23 @@ class TestGitHubQueue(unittest.TestCase):
             additional_labels=["mastodon"],
         )
 
+        # Get count of open issues
+        cnt = self.queue.count_open(wait_sec=WAIT_SECONDS)
+        self.assertEqual(cnt, 2)
+
         # Dequeue first job to mark it as processing
         job = self.queue.dequeue()
-        self.assertIsNotNone(job)
+        self.assertIsNotNone(job, f"first job is unknown although cnt={cnt}")
+        print(job)
+
+        # Get count of open issues
+        cnt = self.queue.count_open(wait_sec=WAIT_SECONDS)
+        self.assertEqual(cnt, 2)
 
         # Test getting only processing jobs
         processing = self.queue.get_jobs()  # default label="processing"
-        print(len(processing))
-        self.assertTrue(len(processing) >= 1)
+        print(list(processing))
+        self.assertTrue(len(list(processing)) >= 1)
 
         # Verify the structure of returned data for processing jobs
         found_processing = False
@@ -154,18 +167,20 @@ class TestGitHubQueue(unittest.TestCase):
         self._close_all_open_issues()
         # Create a new job to test failure
         job_id = self.queue.enqueue({"test": "failure_test"}, "Failure Test Job")
+
+        # Get count of open issues
+        cnt = self.queue.count_open(wait_sec=WAIT_SECONDS)
+        self.assertEqual(cnt, 1)
+
         job = self.queue.dequeue()  # Mark it as processing
         self.assertIsNotNone(job)
-
-        # Get initial count of open issues
-        cnt = self.queue.count_open()
 
         # Mark the job as failed
         failure_message = "Test failure message"
         self.queue.fail(job_id, failure_message)
 
         # Verify open count decreased
-        self.assertEqual(self.queue.count_open(), cnt - 1)
+        self.assertEqual(self.queue.count_open(wait_sec=WAIT_SECONDS), cnt - 1)
 
         # Could add more detailed verification here if needed, such as:
         # - Verify the failure label is present
@@ -202,6 +217,43 @@ class TestGitHubQueue(unittest.TestCase):
         self.queue.complete(job1_id)
         self.queue.complete(job2_id)
         self.queue.complete(job3_id)
+
+    def test_09_get_job_status(self):
+        """Test getting the status of jobs in different states"""
+        self._close_all_open_issues()
+
+        # Create a new job (pending)
+        job_data = {"test": "status_test"}
+        pending_job_id = self.queue.enqueue(job_data, "Status Test - Pending")
+
+        # Get a job for processing
+        self.queue.dequeue()  # Process the pending job
+
+        # Create and complete a job
+        completed_job_id = self.queue.enqueue(job_data, "Status Test - To Complete")
+        self.queue.dequeue()  # Mark as processing
+        self.queue.complete(completed_job_id)
+
+        # Create and fail a job
+        failed_job_id = self.queue.enqueue(job_data, "Status Test - To Fail")
+        self.queue.dequeue()  # Mark as processing
+        self.queue.fail(failed_job_id)
+
+        # Test status for each job
+        self.assertEqual(self.queue.get_job_status(pending_job_id), "processing")  # First job is now processing
+        self.assertEqual(self.queue.get_job_status(completed_job_id), "completed")
+        self.assertEqual(self.queue.get_job_status(failed_job_id), "failed")
+
+        # Create one more pending job to test pending status
+        new_pending_job_id = self.queue.enqueue(job_data, "Status Test - New Pending")
+        self.assertEqual(self.queue.get_job_status(new_pending_job_id), "pending")
+
+        # Test non-existent job
+        self.assertIsNone(self.queue.get_job_status(99999))
+
+        # Clean up
+        self.queue.complete(pending_job_id)
+        self.queue.complete(new_pending_job_id)
 
 
 def test_enqueue_with_additional_labels(mock_repo):

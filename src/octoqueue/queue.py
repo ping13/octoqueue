@@ -2,6 +2,7 @@ import json
 import logging
 import os
 import re
+import time
 from datetime import datetime
 from typing import Any
 from typing import Literal
@@ -51,10 +52,13 @@ class GithubQueue:
             if e.status != 404:  # Only ignore 404 (not found) errors
                 raise
 
-    def __init__(self, repo: str):
-        token = os.getenv("GH_TOKEN")
+    def __init__(self, repo: str, token: str = None):
+        # Allow passing token directly or fallback to environment variable
         if not token:
-            raise ValueError("GH_TOKEN not found in environment")
+            token = os.getenv("GH_TOKEN")
+
+        if not token:
+            raise ValueError("GitHub token not provided and GH_TOKEN not found in environment")
 
         auth = Auth.Token(token)
         self.gh = Github(auth=auth)
@@ -98,8 +102,9 @@ class GithubQueue:
             self.logger.error(f"Failed to enqueue job: {e}")
             raise
 
-    def count_open(self) -> int:
+    def count_open(self, wait_sec=0) -> int:
         """Count the pending and processing issues"""
+        time.sleep(wait_sec)  # if we want to improve the chances of having no race conditions
         open_issues = self.repo.get_issues(state="open")
         cnt = 0
         for issue in open_issues:
@@ -109,15 +114,19 @@ class GithubQueue:
                     cnt += 1
         return cnt
 
-    def dequeue(self) -> tuple[int, dict[str, Any]] | None:
+    def dequeue(self, wait_sec=0) -> tuple[int, dict[str, Any]] | None:
         """Get and claim next pending job"""
+        time.sleep(wait_sec)
         try:
             issues = self.repo.get_issues(labels=["pending"], state="open", sort="created")
 
-            if not issues.totalCount:
+            if len(list(issues)) == 0:
+                self.logger.info(
+                    "You tried to dequeue, but I couldn't find open issued that are labelled with 'pending'",
+                )
+                self.logger.info(list(issues))
                 return None
 
-            print(list(issues))
             issue = issues[-1]
             body = issue.body
             data = extract_json(body)
@@ -183,6 +192,39 @@ class GithubQueue:
         except GithubException as e:
             self.logger.error(f"Failed to requeue job {job_id}: {e}")
             raise
+
+    def get_job_status(self, job_id: int) -> str | None:
+        """Get the status of a job by its ID.
+
+        Args:
+            job_id: The ID of the job to check
+
+        Returns:
+            The status of the job as a string ('pending', 'processing', 'completed', 'failed')
+            or None if the job doesn't exist
+        """
+        try:
+            issue = self.repo.get_issue(job_id)
+
+            # Get all labels for the issue
+            labels = [label.name for label in issue.get_labels()]
+
+            # Determine status based on labels and state
+            if issue.state == "closed":
+                if "completed" in labels:
+                    return "completed"
+                if "failed" in labels:
+                    return "failed"
+                return None  # Closed but not completed or failed
+            # Open issues
+            if "processing" in labels:
+                return "processing"
+            if "pending" in labels:
+                return "pending"
+            return None  # Open but not part of our queue
+
+        except GithubException:
+            return None  # Issue doesn't exist or other GitHub API error
 
     def get_jobs(
         self,

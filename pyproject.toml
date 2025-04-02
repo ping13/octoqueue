@@ -23,14 +23,22 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
 ]
 dependencies = [
-    "pygithub>=2.5.0",
+    "pygithub==2.5.0",
     "pytest-mock>=3.14.0",
     "python-dotenv>=1.0.1",
+    "fastapi>=0.104.0",
+    "uvicorn>=0.23.2",
+    "pydantic>=2.4.2",
+    "jsonschema>=4.0.0",
+    "pytest>=8.3.5",
+    "httpx>=0.28.1",
+    "httpx-socks>=0.10.0",
+    "pysocks>=1.7.1",
 ]
 description = "A simple queue implementatione based on GitHub issues"
 keywords = [""]
 license = {file = "LICENSE"}
-name = "octoqeue"
+name = "octoqueue"
 readme = {file = "README.md", content-type = "text/markdown"}
 requires-python = ">=3.10"
 version = "0.1.0"
@@ -65,6 +73,9 @@ publishing = [
 Repository = "https://github.com/ping13/octoqueue"
 Issues = "https://github.com/ping13/octoqueue/issues"
 ReadTheDocs = "https://octoqueue.readthedocs.io"
+
+[project.scripts]
+octoqueue = "octoqueue.cli:cli"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
