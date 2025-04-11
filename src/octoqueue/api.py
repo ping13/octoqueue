@@ -1,8 +1,8 @@
-import httpx
 import logging
 import os
 import time
 from typing import Any
+import httpx
 from dotenv import load_dotenv
 from fastapi import Depends
 from fastapi import FastAPI
@@ -183,8 +183,8 @@ def create_job(
                     processing_status = "unscheduled"
             except Exception as e:
                 logger.error(f"Failed to ping topoprint endpoint: {e}")
-        
-        return {"job_id": job_id, "status": "pending" , "processing_status" : processing_status }
+
+        return {"job_id": job_id, "status": "pending", "processing_status": processing_status}
     except ValidationError as e:
         logger.warning(f"Job data validation failed: {e}")
         raise HTTPException(
