@@ -74,6 +74,7 @@ class JobRequest(BaseModel):
 class JobResponse(BaseModel):
     job_id: int
     status: str = "pending"
+    processing_status: str = "unknown"
 
 
 class SchemaRequest(BaseModel):
@@ -163,24 +164,27 @@ def create_job(
             title=job_request.title,
             additional_labels=job_request.additional_labels,
         )
-        logger.info(f"Job created successfully: {job_id}")
+        logger.info(f"Octoqueue Job created successfully: {job_id}")
 
         # now let's ping k8s
         topoprint_host = os.getenv("TOPOPRINT_HOST")
+        processing_status = "unknown"
         if topoprint_host:
             try:
                 # Use httpx to make the request
-                health_url = f"https://{topoprint_host}/health"
-                logger.info(f"Pinging topoprint health endpoint: {health_url}")
-                response = httpx.get(health_url, timeout=5.0)
+                run_the_queue_url = f"{topoprint_host}/run-the-queue"
+                logger.info(f"Pinging topoprint endpoint: {run_the_queue_url}")
+                response = httpx.get(run_the_queue_url, timeout=5.0)
                 if response.status_code == 200:
-                    logger.info("Successfully pinged topoprint health endpoint")
+                    logger.info("Successfully pinged topoprint endpoint")
+                    processing_status = "scheduled"
                 else:
-                    logger.warning(f"Topoprint health check failed with status code: {response.status_code}")
+                    logger.warning(f"Topoprint queue ping failed with status code: {response.status_code}")
+                    processing_status = "unscheduled"
             except Exception as e:
-                logger.warning(f"Failed to ping topoprint health endpoint: {e}")
+                logger.error(f"Failed to ping topoprint endpoint: {e}")
         
-        return {"job_id": job_id, "status": "pending"}
+        return {"job_id": job_id, "status": "pending" , "processing_status" : processing_status }
     except ValidationError as e:
         logger.warning(f"Job data validation failed: {e}")
         raise HTTPException(

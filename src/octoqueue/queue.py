@@ -154,6 +154,17 @@ class GithubQueue:
             self.logger.error(f"Failed to mark job {job_id} as failed: {e}")
             raise
 
+    def create_comment(self, job_id: int, comment: str = None) -> None:
+        if comment is None:
+            return None
+        try:
+            issue = self.repo.get_issue(job_id)
+            issue.create_comment(comment)
+        except GithubException as e:
+            self.logger.error(f"Failed to complete job {job_id}: {e}")
+            raise
+        
+
     def complete(self, job_id: int, comment: str = None) -> None:
         """Mark job as complete"""
         if comment is None:
