@@ -146,6 +146,24 @@ async def generic_exception_handler(request: Request, exc: Exception):
     )
 
 
+async def ping_topoprint_async(topoprint_host):
+    """Asynchronously ping the topoprint endpoint"""
+    try:
+        async with httpx.AsyncClient() as client:
+            run_the_queue_url = f"{topoprint_host}/run-the-queue"
+            logger.info(f"Pinging topoprint endpoint: {run_the_queue_url}")
+            response = await client.post(run_the_queue_url, timeout=5.0)
+            if response.status_code == 200:
+                logger.info("Successfully pinged topoprint endpoint")
+                return "scheduled"
+            else:
+                logger.warning(f"Topoprint queue ping failed with status code: {response.status_code}")
+                return "unscheduled"
+    except Exception as e:
+        logger.error(f"Failed to ping topoprint endpoint: {e}")
+        return "error"
+
+
 # Routes
 @app.post("/create-job", response_model=JobResponse, status_code=201)
 def create_job(
