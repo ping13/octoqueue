@@ -166,7 +166,7 @@ async def ping_topoprint_async(topoprint_host):
 
 # Routes
 @app.post("/create-job", response_model=JobResponse, status_code=201)
-def create_job(
+async def create_job(
     job_request: JobRequest,
     rate_limit: None = Depends(check_rate_limit),
     queue: GithubQueue = Depends(get_queue),
