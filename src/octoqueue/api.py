@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import os
 import time
@@ -166,23 +167,13 @@ def create_job(
         )
         logger.info(f"Octoqueue Job created successfully: {job_id}")
 
-        # now let's ping k8s, but async, so that we don't have to wait for the result to return a result for this endpoint. AI!
-        topoprint_host = os.getenv("TOPOPRINT_HOST")
+        # Start async task to ping topoprint without waiting for result
         processing_status = "unknown"
+        topoprint_host = os.getenv("TOPOPRINT_HOST")
         if topoprint_host:
-            try:
-                # Use httpx to make the request
-                run_the_queue_url = f"{topoprint_host}/run-the-queue"
-                logger.info(f"Pinging topoprint endpoint: {run_the_queue_url}")
-                response = httpx.post(run_the_queue_url, timeout=5.0)
-                if response.status_code == 200:
-                    logger.info("Successfully pinged topoprint endpoint")
-                    processing_status = "scheduled"
-                else:
-                    logger.warning(f"Topoprint queue ping failed with status code: {response.status_code}")
-                    processing_status = "unscheduled"
-            except Exception as e:
-                logger.error(f"Failed to ping topoprint endpoint: {e}")
+            # Create a background task that won't block the response
+            asyncio.create_task(ping_topoprint_async(topoprint_host))
+            processing_status = "scheduled"
 
         return {"job_id": job_id, "status": "pending", "processing_status": processing_status}
     except ValidationError as e:
