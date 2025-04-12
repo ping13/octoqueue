@@ -166,7 +166,7 @@ def create_job(
         )
         logger.info(f"Octoqueue Job created successfully: {job_id}")
 
-        # now let's ping k8s
+        # now let's ping k8s, but async, so that we don't have to wait for the result to return a result for this endpoint. AI!
         topoprint_host = os.getenv("TOPOPRINT_HOST")
         processing_status = "unknown"
         if topoprint_host:
@@ -174,7 +174,7 @@ def create_job(
                 # Use httpx to make the request
                 run_the_queue_url = f"{topoprint_host}/run-the-queue"
                 logger.info(f"Pinging topoprint endpoint: {run_the_queue_url}")
-                response = httpx.get(run_the_queue_url, timeout=5.0)
+                response = httpx.post(run_the_queue_url, timeout=5.0)
                 if response.status_code == 200:
                     logger.info("Successfully pinged topoprint endpoint")
                     processing_status = "scheduled"
