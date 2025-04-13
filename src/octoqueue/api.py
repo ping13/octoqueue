@@ -80,6 +80,25 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Add middleware to log CORS requests
+@app.middleware("http")
+async def log_cors_requests(request: Request, call_next):
+    origin = request.headers.get("origin")
+    if origin:
+        logger.info(f"Received request with Origin: {origin}")
+        if origin in ALLOWED_ORIGINS_LIST:
+            logger.info(f"Origin {origin} is in allowed list")
+        else:
+            logger.warning(f"Origin {origin} is NOT in allowed list: {ALLOWED_ORIGINS_LIST}")
+    
+    response = await call_next(request)
+    return response
+
+# Log allowed origins on startup
+@app.on_event("startup")
+async def startup_event():
+    logger.info(f"API started with allowed origins: {ALLOWED_ORIGINS_LIST}")
+
 # Simple in-memory rate limiting
 request_counts = {}
 
