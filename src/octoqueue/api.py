@@ -35,26 +35,12 @@ app = FastAPI(
 )
 
 # Get configuration from environment variables
-ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:*,http://127.0.0.1:*")
+ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://127.0.0.1:5173")
 # Convert comma-separated string to list of origins, handling wildcards for localhost
 ALLOWED_ORIGINS_LIST = []
-for origin in [o.strip() for o in ALLOWED_ORIGINS.split(",")]:
-    if origin.startswith("http://localhost:*") or origin.startswith("http://127.0.0.1:*"):
-        # Add common localhost ports or use regex pattern matching in middleware
-        ALLOWED_ORIGINS_LIST.extend([
-            "http://localhost:3000",
-            "http://localhost:8000", 
-            "http://localhost:8080",
-            "http://localhost:5000",
-            "http://localhost:5173",  # Vite default
-            "http://127.0.0.1:3000",
-            "http://127.0.0.1:8000",
-            "http://127.0.0.1:8080", 
-            "http://127.0.0.1:5000",
-            "http://127.0.0.1:5173",  # Vite default
-        ])
-    else:
-        ALLOWED_ORIGINS_LIST.append(origin)
+for origin in [o.strip() for o in ALLOWED_ORIGINS.split("|")]:
+    ALLOWED_ORIGINS_LIST.append(origin)
+    
 API_KEY = os.getenv("API_KEY")
 GITHUB_REPO = os.getenv("GITHUB_REPO")
 GITHUB_TOKEN = os.getenv("GH_TOKEN")  # Get GitHub token from environment
