@@ -14,6 +14,24 @@ REGION="europe-west6"
 echo "Pushing image to Google Container Registry..."
 docker push ${IMAGE_NAME}
 
+# echo "Pushing secrets"
+# FORCE_PUSH=0
+# uv run dotenv list | while IFS== read -r key value; do
+#     echo "$key=$value"
+#     gcloud secrets describe "$key" >/dev/null 2>&1 || \
+#         gcloud secrets create "$key" --replication-policy=automatic
+#     if [ "$FORCE_PUSH" = "1" ]; then
+#         echo -n "$value" | gcloud secrets versions add "$key" --data-file=-
+#     else
+#         echo "WARNING: I do not update the env variable $key"
+#     fi
+# done
+
+# Assume this
+# gcloud projects add-iam-policy-binding topoprint \
+#  --member="serviceAccount:203114424804-compute@developer.gserviceaccount.com" \
+#  --role="roles/secretmanager.secretAccessor"
+
 # Deploy to Cloud Run, use the .env file to pass al env vars 
 echo "Deploying to Cloud Run..."
 gcloud run deploy ${SERVICE_NAME} \
@@ -22,6 +40,15 @@ gcloud run deploy ${SERVICE_NAME} \
   --region ${REGION} \
   --allow-unauthenticated \
   --set-env-vars="$(uv run dotenv list | paste -s -d ',' -)"
+
+# gcloud run deploy ${SERVICE_NAME} \
+#   --image ${IMAGE_NAME} \
+#   --platform managed \
+#   --region ${REGION} \
+#   --allow-unauthenticated \
+#   --clear-env-vars \
+#   $(uv run dotenv list | awk -F= 'NF == 2 && $2 != "" { printf "--set-secrets=%s=%s:latest\n", $1, $1 }')
+ 
 
 # Get the service URL
 SERVICE_URL=$(gcloud run services describe ${SERVICE_NAME} --platform managed --region ${REGION} --format 'value(status.url)')

@@ -45,8 +45,10 @@ API_KEY = os.getenv("API_KEY")
 GITHUB_REPO = os.getenv("GITHUB_REPO")
 GITHUB_TOKEN = os.getenv("GH_TOKEN")  # Get GitHub token from environment
 RATE_LIMIT_REQUESTS = int(os.getenv("RATE_LIMIT_REQUESTS", "5"))
-RATE_LIMIT_WINDOW = int(os.getenv("RATE_LIMIT_WINDOW", "60"))  # 10 mins in seconds
+RATE_LIMIT_WINDOW = int(os.getenv("RATE_LIMIT_WINDOW", "60"))  # seconds
+RATE_LIMIT_BYPASS_KEY = os.getenv("RATE_LIMIT_BYPASS_KEY", None)
 TOPOPRINT_HOST = os.getenv("TOPOPRINT_HOST")
+
 
 # Schema for job validation
 JOB_SCHEMA = None
@@ -133,6 +135,10 @@ def check_rate_limit(request: Request):
     if not RATE_LIMIT_REQUESTS:
         return
 
+    if RATE_LIMIT_BYPASS_KEY == request.headers.get("x-bypass-ratelimit", "") :
+        logger.info("Bypassing rate limiting because RATE_LIMIT_BYPASS_KEY was set")
+        return
+
     client_ip = request.client.host
     current_time = time.time()
 
@@ -211,18 +217,20 @@ async def create_job(
                 
                 if response.status_code != 200:
                     logger.warning(f"Cluster status check failed with status code: {response.status_code}")
-                    raise HTTPException(status_code=503, detail="Service temporarily unavailable")
+                    raise HTTPException(status_code=503, detail=f"Service is temporarily unavailable ({response.status_code})")
                 
                 status_data = response.json()
                 if not status_data.get("status") == "healthy":
                     logger.warning(f"Cluster reported unhealthy status: {status_data}")
-                    raise HTTPException(status_code=503, detail="Service temporarily unavailable")
+                    raise HTTPException(status_code=503, detail="Service may be overloaded")
                 
                 logger.info("Cluster status check passed")
         except Exception as e:
             logger.error(f"Failed to check cluster status: {e}")
-            raise HTTPException(status_code=503, detail="Service temporarily unavailable")
-    
+            raise HTTPException(status_code=503, detail=f"Service is temporarily unavailable ({e})")
+    else:
+        raise HTTPException(status_code=503, detail="Service host is undefined")
+            
     try:
         # Validate against schema if one is set
         if JOB_SCHEMA is not None:
