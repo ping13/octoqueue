@@ -201,7 +201,27 @@ async def create_job(
 ):
     """Create a new job in the queue"""
     
-    # first try to check if TOPOPRINT_HOST is not overloaded: if the endpoint {TOPOPRINT_HOST}/cluster/status doesn't return a JSON that contains { "status" : "healthy" } return a 503. AI!
+    # Check if TOPOPRINT_HOST is overloaded
+    if TOPOPRINT_HOST:
+        try:
+            async with httpx.AsyncClient() as client:
+                status_url = f"{TOPOPRINT_HOST}/cluster/status"
+                logger.info(f"Checking cluster status at: {status_url}")
+                response = await client.get(status_url, timeout=10.0)
+                
+                if response.status_code != 200:
+                    logger.warning(f"Cluster status check failed with status code: {response.status_code}")
+                    raise HTTPException(status_code=503, detail="Service temporarily unavailable")
+                
+                status_data = response.json()
+                if not status_data.get("status") == "healthy":
+                    logger.warning(f"Cluster reported unhealthy status: {status_data}")
+                    raise HTTPException(status_code=503, detail="Service temporarily unavailable")
+                
+                logger.info("Cluster status check passed")
+        except Exception as e:
+            logger.error(f"Failed to check cluster status: {e}")
+            raise HTTPException(status_code=503, detail="Service temporarily unavailable")
     
     try:
         # Validate against schema if one is set
