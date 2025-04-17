@@ -135,7 +135,7 @@ def check_rate_limit(request: Request):
     if not RATE_LIMIT_REQUESTS:
         return
 
-    if RATE_LIMIT_BYPASS_KEY == request.headers.get("x-bypass-ratelimit", "") :
+    if request.headers.get("x-bypass-ratelimit", "") == RATE_LIMIT_BYPASS_KEY:
         logger.info("Bypassing rate limiting because RATE_LIMIT_BYPASS_KEY was set")
         return
 
@@ -206,7 +206,6 @@ async def create_job(
     queue: GithubQueue = Depends(get_queue),
 ):
     """Create a new job in the queue"""
-    
     # Check if TOPOPRINT_HOST is overloaded
     if TOPOPRINT_HOST:
         try:
@@ -214,23 +213,25 @@ async def create_job(
                 status_url = f"{TOPOPRINT_HOST}/cluster/status"
                 logger.info(f"Checking cluster status at: {status_url}")
                 response = await client.get(status_url, timeout=10.0)
-                
+
                 if response.status_code != 200:
                     logger.warning(f"Cluster status check failed with status code: {response.status_code}")
-                    raise HTTPException(status_code=503, detail=f"Service is temporarily unavailable ({response.status_code})")
-                
+                    raise HTTPException(
+                        status_code=503, detail=f"Service is temporarily unavailable ({response.status_code})"
+                    )
+
                 status_data = response.json()
                 if not status_data.get("status") == "healthy":
                     logger.warning(f"Cluster reported unhealthy status: {status_data}")
                     raise HTTPException(status_code=503, detail="Service may be overloaded")
-                
+
                 logger.info("Cluster status check passed")
         except Exception as e:
             logger.error(f"Failed to check cluster status: {e}")
             raise HTTPException(status_code=503, detail=f"Service is temporarily unavailable ({e})")
     else:
         raise HTTPException(status_code=503, detail="Service host is undefined")
-            
+
     try:
         # Validate against schema if one is set
         if JOB_SCHEMA is not None:
@@ -246,13 +247,12 @@ async def create_job(
 
         # Start async task to ping topoprint without waiting for result
         processing_status = "unknown"
-        assert TOPOPRINT_HOST, f"unknown TOPOPRINT_HOST"
+        assert TOPOPRINT_HOST, "unknown TOPOPRINT_HOST"
 
         # Create a background task that won't block the response
         asyncio.create_task(ping_topoprint_async(TOPOPRINT_HOST))
         processing_status = "scheduled"
         logger.info(f"created task for {TOPOPRINT_HOST}")
-
 
         return {"job_id": job_id, "status": "pending", "processing_status": processing_status}
     except ValidationError as e:
