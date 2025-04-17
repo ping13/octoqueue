@@ -40,12 +40,13 @@ ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://127.0.0.1:5173")
 ALLOWED_ORIGINS_LIST = []
 for origin in [o.strip() for o in ALLOWED_ORIGINS.split("|")]:
     ALLOWED_ORIGINS_LIST.append(origin)
-    
+
 API_KEY = os.getenv("API_KEY")
 GITHUB_REPO = os.getenv("GITHUB_REPO")
 GITHUB_TOKEN = os.getenv("GH_TOKEN")  # Get GitHub token from environment
-RATE_LIMIT_REQUESTS = int(os.getenv("RATE_LIMIT_REQUESTS", "100"))
-RATE_LIMIT_WINDOW = int(os.getenv("RATE_LIMIT_WINDOW", "600"))  # 10 mins in seconds
+RATE_LIMIT_REQUESTS = int(os.getenv("RATE_LIMIT_REQUESTS", "5"))
+RATE_LIMIT_WINDOW = int(os.getenv("RATE_LIMIT_WINDOW", "60"))  # 10 mins in seconds
+TOPOPRINT_HOST = os.getenv("TOPOPRINT_HOST")
 
 # Schema for job validation
 JOB_SCHEMA = None
@@ -66,6 +67,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 # Add middleware to log CORS requests
 @app.middleware("http")
 async def log_cors_requests(request: Request, call_next):
@@ -76,14 +78,16 @@ async def log_cors_requests(request: Request, call_next):
             logger.info(f"Origin {origin} is in allowed list")
         else:
             logger.warning(f"Origin {origin} is NOT in allowed list: {ALLOWED_ORIGINS_LIST}")
-    
+
     response = await call_next(request)
     return response
+
 
 # Log allowed origins on startup
 @app.on_event("startup")
 async def startup_event():
     logger.info(f"API started with allowed origins: {ALLOWED_ORIGINS_LIST}")
+
 
 # Simple in-memory rate limiting
 request_counts = {}
@@ -93,6 +97,7 @@ request_counts = {}
 class JobRequest(BaseModel):
     data: dict[str, Any]
     title: str | None = None
+    source: str | None = None
     additional_labels: list[str] | None = None
 
 
@@ -176,13 +181,12 @@ async def ping_topoprint_async(topoprint_host):
         async with httpx.AsyncClient() as client:
             run_the_queue_url = f"{topoprint_host}/run-the-queue"
             logger.info(f"Pinging topoprint endpoint: {run_the_queue_url}")
-            response = await client.post(run_the_queue_url, timeout=5.0)
+            response = await client.post(run_the_queue_url, timeout=60.0)
             if response.status_code == 200:
                 logger.info("Successfully pinged topoprint endpoint")
                 return "scheduled"
-            else:
-                logger.warning(f"Topoprint queue ping failed with status code: {response.status_code}")
-                return "unscheduled"
+            logger.warning(f"Topoprint queue ping failed with status code: {response.status_code}")
+            return "unscheduled"
     except Exception as e:
         logger.error(f"Failed to ping topoprint endpoint: {e}")
         return "error"
@@ -196,6 +200,9 @@ async def create_job(
     queue: GithubQueue = Depends(get_queue),
 ):
     """Create a new job in the queue"""
+    
+    # first try to check if TOPOPRINT_HOST is not overloaded: if the endpoint {TOPOPRINT_HOST}/cluster/status doesn't return a JSON that contains { "status" : "healthy" } return a 503. AI!
+    
     try:
         # Validate against schema if one is set
         if JOB_SCHEMA is not None:
@@ -211,11 +218,13 @@ async def create_job(
 
         # Start async task to ping topoprint without waiting for result
         processing_status = "unknown"
-        topoprint_host = os.getenv("TOPOPRINT_HOST")
-        if topoprint_host:
-            # Create a background task that won't block the response
-            asyncio.create_task(ping_topoprint_async(topoprint_host))
-            processing_status = "scheduled"
+        assert TOPOPRINT_HOST, f"unknown TOPOPRINT_HOST"
+
+        # Create a background task that won't block the response
+        asyncio.create_task(ping_topoprint_async(TOPOPRINT_HOST))
+        processing_status = "scheduled"
+        logger.info(f"created task for {TOPOPRINT_HOST}")
+
 
         return {"job_id": job_id, "status": "pending", "processing_status": processing_status}
     except ValidationError as e:
