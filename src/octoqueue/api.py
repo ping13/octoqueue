@@ -217,7 +217,8 @@ async def create_job(
                 if response.status_code != 200:
                     logger.warning(f"Cluster status check failed with status code: {response.status_code}")
                     raise HTTPException(
-                        status_code=503, detail=f"Service is temporarily unavailable ({response.status_code})"
+                        status_code=503,
+                        detail=f"Service is temporarily unavailable ({response.status_code})",
                     )
 
                 status_data = response.json()
