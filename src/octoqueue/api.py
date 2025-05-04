@@ -16,6 +16,7 @@ from jsonschema import ValidationError
 from jsonschema import validate
 from pydantic import BaseModel
 from .queue import GithubQueue
+import uuid
 
 # Load environment variables
 load_dotenv()
@@ -181,20 +182,64 @@ async def generic_exception_handler(request: Request, exc: Exception):
     )
 
 
-async def ping_topoprint_async(topoprint_host):
-    """Asynchronously ping the topoprint endpoint"""
+async def ping_topoprint_async(topoprint_host, request_id=None):
+    """
+    Asynchronously ping the topoprint endpoint with enhanced exception logging
+    
+    Args:
+        topoprint_host (str): The host URL for topoprint
+        request_id (str, optional): Unique identifier to track this specific request
+        
+    Returns:
+        str: Status of the ping ("scheduled", "unscheduled", or "error")
+    """
+    request_id = request_id or uuid.uuid4().hex[:8]
+    logger.info(f"[{request_id}] Starting topoprint ping to host: {topoprint_host}")
+    
     try:
         async with httpx.AsyncClient() as client:
             run_the_queue_url = f"{topoprint_host}/run-the-queue"
-            logger.info(f"Pinging topoprint endpoint: {run_the_queue_url}")
-            response = await client.post(run_the_queue_url, timeout=60.0)
+            
+            logger.info(f"[{request_id}] Pinging topoprint endpoint: {run_the_queue_url}")
+            
+            response = await client.post(
+                run_the_queue_url, 
+                timeout=60.0,
+                headers={"X-Request-ID": request_id}
+            )
+            
             if response.status_code == 200:
-                logger.info("Successfully pinged topoprint endpoint")
+                logger.info(f"[{request_id}] Successfully pinged topoprint endpoint")
                 return "scheduled"
-            logger.warning(f"Topoprint queue ping failed with status code: {response.status_code}")
+            
+            logger.warning(
+                f"[{request_id}] Topoprint queue ping failed with status code: {response.status_code}, "
+                f"Response: {response.text[:200]}"
+            )
             return "unscheduled"
+            
+    except httpx.TimeoutException as e:
+        # Log with both string representation and exception info
+        logger.error(
+            f"[{request_id}] Timeout while pinging topoprint endpoint: {repr(e)}",
+            exc_info=True
+        )
+        return "error"
+    except httpx.RequestError as e:
+        logger.error(
+            f"[{request_id}] Network error while pinging topoprint endpoint: {repr(e)}",
+            exc_info=True
+        )
+        return "error"
     except Exception as e:
-        logger.error(f"Failed to ping topoprint endpoint: {e}")
+        # Log multiple representations of the exception
+        error_message = (
+            f"[{request_id}] Unexpected error while pinging topoprint endpoint:\n"
+            f"Type: {type(e).__name__}\n"
+            f"Repr: {repr(e)}\n"
+            f"Str: {str(e)}"
+        )
+        logger.error(error_message, exc_info=True)
         return "error"
 
 
@@ -218,7 +263,7 @@ async def create_job(
                     logger.warning(f"Cluster status check failed with status code: {response.status_code}")
                     raise HTTPException(
                         status_code=503,
-                        detail=f"Service is temporarily unavailable ({response.status_code})",
+                        detail=f"Service is temporarily unavailable (cluster status code={response.status_code})",
                     )
 
                 status_data = response.json()
@@ -228,8 +273,8 @@ async def create_job(
 
                 logger.info("Cluster status check passed")
         except Exception as e:
-            logger.error(f"Failed to check cluster status: {e}")
-            raise HTTPException(status_code=503, detail=f"Service is temporarily unavailable ({e})")
+            logger.error(f"Failed to check cluster status: {str(e)}")
+            raise HTTPException(status_code=503, detail=f"Service is temporarily unavailable (error={str(e)})")
     else:
         raise HTTPException(status_code=503, detail="Service host is undefined")
 

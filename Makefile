@@ -11,7 +11,7 @@ test:		## run unittests
 debug:		## run the API server in debug mode
 	uv run -m octoqueue.cli serve --port 8080 --reload
 
-test-api:	## test the API with a simple curl command
+test-api:	## test the API locally with a simple curl command
 	curl -X POST -H 'Content-Type: application/json' -d '{"data": {"test": true}}' localhost:8080/jobs
 
 SERVICE_NAME=octoqueue

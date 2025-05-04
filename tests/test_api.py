@@ -113,7 +113,7 @@ def test_create_job(client, mock_queue):
 
     # Assertions
     assert response.status_code == 201
-    assert response.json() == {"job_id": 123, "status": "pending"}
+    assert response.json() == {"job_id": 123, 'processing_status': 'scheduled', "status": "pending"}
     mock_queue.enqueue.assert_called_once_with(
         data=job_data["data"],
         title=job_data["title"],
@@ -135,7 +135,7 @@ def test_create_job_with_additional_labels(client, mock_queue):
 
     # Assertions
     assert response.status_code == 201
-    assert response.json() == {"job_id": 123, "status": "pending"}
+    assert response.json() == {"job_id": 123, 'processing_status': 'scheduled', "status": "pending"}
     mock_queue.enqueue.assert_called_once_with(
         data=job_data["data"],
         title=job_data["title"],

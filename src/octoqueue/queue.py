@@ -146,6 +146,7 @@ class GithubQueue:
             comment = "This job has failed"
         try:
             issue = self.repo.get_issue(job_id)
+            assert issue, f"Cannot find issue for {job_id}"
             self._safe_remove_label(issue, "processing")
             issue.add_to_labels("failed")
             issue.create_comment(comment)
