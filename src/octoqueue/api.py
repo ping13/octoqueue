@@ -3,6 +3,7 @@ import logging
 import os
 import time
 import uuid
+from contextlib import asynccontextmanager
 from typing import Any
 import httpx
 from dotenv import load_dotenv
@@ -10,7 +11,6 @@ from fastapi import Depends
 from fastapi import FastAPI
 from fastapi import Header
 from fastapi import HTTPException
-from contextlib import asynccontextmanager
 from fastapi import Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -57,11 +57,11 @@ if not GITHUB_REPO:
     logger.error("GITHUB_REPO environment variable not set. API will not function correctly!")
 
 
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info(f"API started with allowed origins: {ALLOWED_ORIGINS_LIST}")
     yield  # App runs here
+
 
 # Simple in-memory rate limiting
 request_counts = {}
@@ -72,7 +72,7 @@ app = FastAPI(
     title="OctoQueue API",
     description="A simple queue API based on GitHub issues",
     version="0.1.0",
-    lifespan=lifespan
+    lifespan=lifespan,
 )
 
 # Add CORS middleware
@@ -98,6 +98,7 @@ async def log_cors_requests(request: Request, call_next):
 
     response = await call_next(request)
     return response
+
 
 # Request models
 class JobRequest(BaseModel):
