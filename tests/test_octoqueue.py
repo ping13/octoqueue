@@ -4,7 +4,7 @@ import unittest
 import pytest
 from octoqueue import GithubQueue
 
-WAIT_SECONDS = 5
+WAIT_SECONDS = 10
 
 
 @pytest.fixture

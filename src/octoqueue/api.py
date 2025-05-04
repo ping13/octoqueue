@@ -10,6 +10,7 @@ from fastapi import Depends
 from fastapi import FastAPI
 from fastapi import Header
 from fastapi import HTTPException
+from contextlib import asynccontextmanager
 from fastapi import Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -28,12 +29,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger("octoqueue.api")
 
-# Initialize FastAPI app
-app = FastAPI(
-    title="OctoQueue API",
-    description="A simple queue API based on GitHub issues",
-    version="0.1.0",
-)
 
 # Get configuration from environment variables
 ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://127.0.0.1:5173")
@@ -61,6 +56,25 @@ if not API_KEY:
 if not GITHUB_REPO:
     logger.error("GITHUB_REPO environment variable not set. API will not function correctly!")
 
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    logger.info(f"API started with allowed origins: {ALLOWED_ORIGINS_LIST}")
+    yield  # App runs here
+
+# Simple in-memory rate limiting
+request_counts = {}
+
+
+# Initialize FastAPI app
+app = FastAPI(
+    title="OctoQueue API",
+    description="A simple queue API based on GitHub issues",
+    version="0.1.0",
+    lifespan=lifespan
+)
+
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
@@ -84,17 +98,6 @@ async def log_cors_requests(request: Request, call_next):
 
     response = await call_next(request)
     return response
-
-
-# Log allowed origins on startup
-@app.on_event("startup")
-async def startup_event():
-    logger.info(f"API started with allowed origins: {ALLOWED_ORIGINS_LIST}")
-
-
-# Simple in-memory rate limiting
-request_counts = {}
-
 
 # Request models
 class JobRequest(BaseModel):
